@@ -35,16 +35,6 @@
 			path = UniversitySchedule;
 			sourceTree = "<group>";
 		};
-		6D6BE1DE2E72FA2F00B46B66 /* UniversityScheduleTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = UniversityScheduleTests;
-			sourceTree = "<group>";
-		};
-		6D6BE1E82E72FA2F00B46B66 /* UniversityScheduleUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = UniversityScheduleUITests;
-			sourceTree = "<group>";
-		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -76,8 +66,6 @@
 			isa = PBXGroup;
 			children = (
 				6D6BE1CF2E72FA2F00B46B66 /* UniversitySchedule */,
-				6D6BE1DE2E72FA2F00B46B66 /* UniversityScheduleTests */,
-				6D6BE1E82E72FA2F00B46B66 /* UniversityScheduleUITests */,
 				6D6BE1CE2E72FA2F00B46B66 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -130,9 +118,6 @@
 			dependencies = (
 				6D6BE1DD2E72FA2F00B46B66 /* PBXTargetDependency */,
 			);
-			fileSystemSynchronizedGroups = (
-				6D6BE1DE2E72FA2F00B46B66 /* UniversityScheduleTests */,
-			);
 			name = UniversityScheduleTests;
 			packageProductDependencies = (
 			);
@@ -152,9 +137,6 @@
 			);
 			dependencies = (
 				6D6BE1E72E72FA2F00B46B66 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				6D6BE1E82E72FA2F00B46B66 /* UniversityScheduleUITests */,
 			);
 			name = UniversityScheduleUITests;
 			packageProductDependencies = (
