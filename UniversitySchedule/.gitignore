@@ -1,0 +1,5 @@
+# Xcode junk
+*.xcuserstate
+*.xcscmblueprint
+*.xcuserdatad/
+DerivedData/
