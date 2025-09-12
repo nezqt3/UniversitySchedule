@@ -13,6 +13,7 @@ enum SampleData {
     
     static func today(lessons: [Lesson] = []) -> DaySchedule {
         let today = Date()
+
         return DaySchedule(date: today, lessons: lessons)
     }
     
