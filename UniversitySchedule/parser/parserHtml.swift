@@ -34,7 +34,7 @@ final class HTMLGrabber {
             return ""
         }
         
-        var dayToday = todayData()
+        var dict = [Lesson]()
         let now = Date()
 
         let dateFormatter = DateFormatter()
@@ -54,8 +54,6 @@ final class HTMLGrabber {
                 let location        = item["auditorium"]  as? String,
                 let teacher         = item["lecturer"]    as? String
             else { continue }
-            print(1)
-            
             let lesson = Lesson(
                 start: DateComponents(),
                 end: DateComponents(),
@@ -64,9 +62,13 @@ final class HTMLGrabber {
                 location: location,
                 teacher: teacher
             )
-            todayData.today().lessons.append(lesson)
+            
+            dict.append(lesson)
         }
         
+        let daySchedule = DaySchedule(date: now, lessons: dict)
+        SampleData.today(lessons: dict)
+        print(dict)
         return array.count
     }
 
