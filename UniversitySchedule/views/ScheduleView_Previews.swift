@@ -15,7 +15,7 @@ struct ScheduleView_Previews: PreviewProvider {
 
         // первая пара идёт сейчас
         let start1 = cal.date(byAdding: .minute, value: -15, to: now)!
-        let end1   = cal.date(byAdding: .minute, value: 60, to: now)!
+        let end1 = cal.date(byAdding: .minute, value: 60, to: now)!
 
         // вторая пара потом
         let start2 = cal.date(byAdding: .minute, value: 90, to: now)!
