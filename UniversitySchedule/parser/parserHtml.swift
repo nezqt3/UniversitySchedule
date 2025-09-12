@@ -23,13 +23,13 @@ final class HTMLGrabber {
     func fetchText(from urlString: String, select css: String? = nil) async throws -> Int {
         let data = try await fetchData(urlString: urlString, retries: 3)
         if isJSON(data: data) {
-            return try extractString(from: data, key: "discipline") as! Int? ?? 1
+            return try await extractString(from: data, key: "discipline") as! Int? ?? 1
 //            return jsonToPrettyString(data) ?? String(data: data, encoding: .utf8) ?? ""
         }
         return 1
     }
     
-    func extractString(from data: Data, key: String) throws -> Any? {
+    func extractString(from data: Data, key: String) async throws -> Any? {
         guard let array = try JSONSerialization.jsonObject(with: data) as? [Any] else {
             return ""
         }
@@ -48,15 +48,15 @@ final class HTMLGrabber {
             let lessonKind: LessonKind = (kindStr == "Лекции") ? .lecture : .seminar
 
             guard
-//                let startTimeString = item["beginLesson"] as? DateComponents,
-//                let endTimeString   = item["endLesson"]   as? DateComponents,
+                let startTimeString = timeStringToDateComponents(item["beginLesson"] as! String),
+                let endTimeString   = timeStringToDateComponents(item["endLesson"]   as! String),
                 let title           = item["discipline"]  as? String,
                 let location        = item["auditorium"]  as? String,
                 let teacher         = item["lecturer"]    as? String
             else { continue }
             let lesson = Lesson(
-                start: DateComponents(),
-                end: DateComponents(),
+                start: startTimeString,
+                end: endTimeString,
                 title: title,
                 kind: lessonKind,
                 location: location,
@@ -66,10 +66,24 @@ final class HTMLGrabber {
             dict.append(lesson)
         }
         
-        let daySchedule = DaySchedule(date: now, lessons: dict)
-        SampleData.today(lessons: dict)
+        
+        SampleData.updateSchedule(with: dict)
         print(dict)
+        
         return array.count
+    }
+    
+    func timeStringToDateComponents(_ timeString: String) -> DateComponents? {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        
+        guard let date = formatter.date(from: timeString) else {
+            return nil
+        }
+        
+        let calendar = Calendar.current
+        let components = calendar.dateComponents([.hour, .minute], from: date)
+        return components
     }
 
     private func fetchData(urlString: String, retries: Int) async throws -> Data {

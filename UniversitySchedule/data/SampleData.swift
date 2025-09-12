@@ -7,17 +7,16 @@
 
 import Foundation
 
-struct SampleData {
+enum SampleData {
     
     static var currentSchedule: DaySchedule = today()
     
     static func today(lessons: [Lesson] = []) -> DaySchedule {
         let today = Date()
-        
-        return DaySchedule(
-            date: today,
-            lessons: lessons
-        )
-        
+        return DaySchedule(date: today, lessons: lessons)
     }
+    
+    static func updateSchedule(with lessons: [Lesson]) {
+            currentSchedule = DaySchedule(date: Date(), lessons: lessons)
+        }
 }
