@@ -37,7 +37,7 @@ struct ScheduleView: View {
             Button {
                 Task {
                     do {
-                        var myres = try await getInformationAboutWeb()
+                        let myres = try await getInformationAboutWeb()
                         print(myres)
                         store.refresh()
                     } catch {
@@ -115,11 +115,15 @@ struct ScheduleView: View {
         return now >= start && now <= end
     }
     
-    func getInformationAboutWeb() async throws -> String{
-        let parser = parserHtml()
-        let url = "https://ruz.fa.ru/ruz/main"
-        let result = try await parser.parseHtml(from: url)
-        return result
+    func getInformationAboutWeb() async throws -> String {
+        let parser = HTMLGrabber()
+//        let url = "https://ruz.fa.ru/api/schedule/group/155274"
+//        let result = try await parser.parseHtml(from: url)
+//        return result
+        
+        let text = try await parser.fetchText(from: "https://ruz.fa.ru/api/schedule/group/155274")
+        
+        return text
     }
 
     private func nextLesson() -> Lesson? {

@@ -1,24 +1,94 @@
-import SwiftSoup
-import Foundation
 
-class parserHtml {
-    
-    func parseHtml(from urlString: String) async throws -> String {
-        guard let url = URL(string: urlString) else { return "" }
-        
-        let (data, _) = try await URLSession.shared.data(from: url)
-        guard let htmlString = String(data: data, encoding: .utf8) else {
-                    return ""
-                }
-        
-        return try parseHTML(htmlString: htmlString)
-    }
-    
-    func parseHTML(htmlString: String) throws -> String {
-        let doc: Document = try SwiftSoup.parse(htmlString)
-        let text: String = try doc.text()
-        return text
+import Foundation
+import SwiftSoup
+
+// MARK: - Ошибки
+enum GrabErr: LocalizedError {
+    case badURL
+    case emptyBody
+    case http(Int)
+    case hostNotFound(String)
+    case underlying(Error)
+    var errorDescription: String? {
+        switch self {
+        case .badURL: return "⚠️ Кривой URL"
+        case .emptyBody: return "⚠️ Пустой ответ"
+        case .http(let s): return "⚠️ HTTP \(s)"
+        case .hostNotFound(let h): return "⚠️ Хост не найден: \(h)"
+        case .underlying(let e): return e.localizedDescription
+        }
     }
 }
 
+final class HTMLGrabber {
 
+    func fetchText(from urlString: String, select css: String? = nil) async throws -> String {
+        let data = try await fetchData(urlString: urlString, retries: 3)
+        if isJSON(data: data) {
+            return jsonToPrettyString(data) ?? String(data: data, encoding: .utf8) ?? ""
+        }
+        
+        return ""
+    }
+
+    private func fetchData(urlString: String, retries: Int) async throws -> Data {
+        guard let url = URL(string: urlString) else { throw GrabErr.badURL }
+
+        var req = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20)
+        req.httpMethod = "GET"
+        req.setValue("Mozilla/5.0 (Mac; Intel Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15", forHTTPHeaderField: "User-Agent")
+        req.setValue("*/*", forHTTPHeaderField: "Accept")
+        req.setValue("en-US,en;q=0.9,ru;q=0.8", forHTTPHeaderField: "Accept-Language")
+
+        let cfg = URLSessionConfiguration.ephemeral
+        cfg.waitsForConnectivity = true
+        cfg.allowsConstrainedNetworkAccess = true
+        cfg.allowsExpensiveNetworkAccess = true
+        let session = URLSession(configuration: cfg)
+
+        
+        var lastErr: Error?
+        var attempt = 0
+        while attempt <= retries {
+            do {
+                let (data, resp) = try await session.data(for: req)
+                if let http = resp as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
+                    throw GrabErr.http(http.statusCode)
+                }
+                guard !data.isEmpty else { throw GrabErr.emptyBody }
+                return data
+            } catch let ns as NSError {
+                if ns.domain == NSURLErrorDomain {
+                    switch ns.code {
+                    case NSURLErrorCannotFindHost: // -1003
+                        throw GrabErr.hostNotFound(url.host ?? url.absoluteString)
+                    case NSURLErrorTimedOut, NSURLErrorNetworkConnectionLost, NSURLErrorCannotConnectToHost, NSURLErrorDNSLookupFailed:
+                        lastErr = ns
+                        let delay = UInt64(pow(2.0, Double(attempt))) * 300_000_000
+                        try? await Task.sleep(nanoseconds: delay)
+                        attempt += 1
+                        continue
+                    default:
+                        throw GrabErr.underlying(ns)
+                    }
+                } else {
+                    throw GrabErr.underlying(ns)
+                }
+            }
+        }
+        throw GrabErr.underlying(lastErr ?? GrabErr.emptyBody)
+    }
+
+    private func isJSON(data: Data) -> Bool {
+        if data.isEmpty { return false }
+        let first = data.first!
+        return first == UInt8(ascii: "{") || first == UInt8(ascii: "[")
+    }
+    private func jsonToPrettyString(_ data: Data) -> String? {
+        guard let obj = try? JSONSerialization.jsonObject(with: data),
+              let pretty = try? JSONSerialization.data(withJSONObject: obj, options: [.prettyPrinted]),
+              var s = String(data: pretty, encoding: .utf8) else { return nil }
+        s = s.split(separator: "\n").map { $0.trimmingCharacters(in: .whitespaces) }.joined(separator: "\n")
+        return s
+    }
+}
