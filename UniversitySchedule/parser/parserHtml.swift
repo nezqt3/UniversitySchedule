@@ -8,10 +8,17 @@ class parserHtml {
         
         let (data, _) = try await URLSession.shared.data(from: url)
         guard let htmlString = String(data: data, encoding: .utf8) else {
-                    throw ParserError.invalidData
+                    return ""
                 }
         
         return try parseHTML(htmlString: htmlString)
     }
-
+    
+    func parseHTML(htmlString: String) throws -> String {
+        let doc: Document = try SwiftSoup.parse(htmlString)
+        let text: String = try doc.text()
+        return text
+    }
 }
+
+
