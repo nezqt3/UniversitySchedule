@@ -21,7 +21,6 @@ struct ScheduleView: View {
             }
             footer
         }
-        .accessibilityElement(children: .contain)
     }
 
     private var header: some View {
@@ -37,7 +36,7 @@ struct ScheduleView: View {
             Button {
                 Task {
                     do {
-                        var myres = try await getInformationAboutWeb()
+                        let myres = try await getInformationAboutWeb()
                         print(myres)
                         store.refresh()
                     } catch {
@@ -50,6 +49,7 @@ struct ScheduleView: View {
                     .help("Обновить")
             }
             .buttonStyle(.borderless)
+            .padding(.trailing, 9)
 
         }
     }
@@ -72,9 +72,18 @@ struct ScheduleView: View {
         .frame(maxWidth: .infinity, alignment: .center)
         .padding(.vertical, 24)
     }
+    
+    private var breakBetweenLessons: some View {
+        HStack{
+            Spacer()
+            }
+        }
+    
 
     private var footer: some View {
         HStack {
+            Text(getGroupInfo())
+            Spacer()
             Menu {
                 Button("Открыть настройки…") {
                     NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
@@ -85,14 +94,20 @@ struct ScheduleView: View {
                 Image(systemName: "ellipsis.circle")
             }
             .menuStyle(.borderlessButton)
+            .fixedSize()
         }
         .font(.footnote)
         .foregroundStyle(.secondary)
         .padding(.top, 6)
+//        .padding(.trailing, 8)
     }
 
     // MARK: - Helpers
-
+    private func getGroupInfo() -> String {
+        let Group = "ТРПО25-2" // В дальнейшем задавать группу через настройки чтобы пользователь мог выбрать
+        return Group
+    }
+    
     private func dateString(_ date: Date) -> String {
         let df = DateFormatter()
         df.locale = .init(identifier: "ru_RU")

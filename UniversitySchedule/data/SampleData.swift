@@ -33,7 +33,7 @@ enum SampleData {
                 ),
                 Lesson(
                     start: DateComponents(hour: 13, minute: 0),
-                    end:   DateComponents(hour: 14, minute: 30),
+                    end:   DateComponents(hour: 22, minute: 30),
                     title: "Программирование",
                     kind: .lab,
                     location: "Лаб-12",
