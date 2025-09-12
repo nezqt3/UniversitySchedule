@@ -35,13 +35,22 @@ struct ScheduleView: View {
             }
             Spacer()
             Button {
-                store.refresh()
+                Task {
+                    do {
+                        var myres = try await getInformationAboutWeb()
+                        print(myres)
+                        store.refresh()
+                    } catch {
+                        print("Ошибка парсинга: \(error)")
+                    }
+                }
             } label: {
                 Image(systemName: "arrow.clockwise")
                     .imageScale(.medium)
                     .help("Обновить")
             }
             .buttonStyle(.borderless)
+
         }
     }
 
@@ -91,6 +100,7 @@ struct ScheduleView: View {
         return df.string(from: date).capitalized
     }
 
+
     private func isNow(_ lesson: Lesson) -> Bool {
         let cal = Calendar.current
         let now = Date()
@@ -103,6 +113,13 @@ struct ScheduleView: View {
                                second: 0, of: now)
         else { return false }
         return now >= start && now <= end
+    }
+    
+    func getInformationAboutWeb() async throws -> String{
+        let parser = parserHtml()
+        let url = "https://ruz.fa.ru/ruz/main"
+        let result = try await parser.parseHtml(from: url)
+        return result
     }
 
     private func nextLesson() -> Lesson? {
