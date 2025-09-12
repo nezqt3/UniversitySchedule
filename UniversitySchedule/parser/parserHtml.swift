@@ -1,8 +1,6 @@
-
 import Foundation
 import SwiftSoup
 
-// MARK: - Ошибки
 enum GrabErr: LocalizedError {
     case badURL
     case emptyBody
@@ -22,13 +20,54 @@ enum GrabErr: LocalizedError {
 
 final class HTMLGrabber {
 
-    func fetchText(from urlString: String, select css: String? = nil) async throws -> String {
+    func fetchText(from urlString: String, select css: String? = nil) async throws -> Int {
         let data = try await fetchData(urlString: urlString, retries: 3)
         if isJSON(data: data) {
-            return jsonToPrettyString(data) ?? String(data: data, encoding: .utf8) ?? ""
+            return try extractString(from: data, key: "discipline") as! Int? ?? 1
+//            return jsonToPrettyString(data) ?? String(data: data, encoding: .utf8) ?? ""
+        }
+        return 1
+    }
+    
+    func extractString(from data: Data, key: String) throws -> Any? {
+        guard let array = try JSONSerialization.jsonObject(with: data) as? [Any] else {
+            return ""
         }
         
-        return ""
+        var dayToday = todayData()
+        let now = Date()
+
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        let dateString = dateFormatter.string(from: now)
+
+        for element in array {
+            guard let item = element as? [String: Any] else { continue }
+            guard let date = item["date"] as? String, date == dateString else { continue }
+            guard let kindStr = item["kindOfWork"] as? String else { continue }
+            let lessonKind: LessonKind = (kindStr == "Лекции") ? .lecture : .seminar
+
+            guard
+//                let startTimeString = item["beginLesson"] as? DateComponents,
+//                let endTimeString   = item["endLesson"]   as? DateComponents,
+                let title           = item["discipline"]  as? String,
+                let location        = item["auditorium"]  as? String,
+                let teacher         = item["lecturer"]    as? String
+            else { continue }
+            print(1)
+            
+            let lesson = Lesson(
+                start: DateComponents(),
+                end: DateComponents(),
+                title: title,
+                kind: lessonKind,
+                location: location,
+                teacher: teacher
+            )
+            todayData.today().lessons.append(lesson)
+        }
+        
+        return array.count
     }
 
     private func fetchData(urlString: String, retries: Int) async throws -> Data {

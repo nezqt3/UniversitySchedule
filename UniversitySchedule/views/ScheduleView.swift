@@ -115,11 +115,8 @@ struct ScheduleView: View {
         return now >= start && now <= end
     }
     
-    func getInformationAboutWeb() async throws -> String {
+    func getInformationAboutWeb() async throws -> Int {
         let parser = HTMLGrabber()
-//        let url = "https://ruz.fa.ru/api/schedule/group/155274"
-//        let result = try await parser.parseHtml(from: url)
-//        return result
         
         let text = try await parser.fetchText(from: "https://ruz.fa.ru/api/schedule/group/155274")
         

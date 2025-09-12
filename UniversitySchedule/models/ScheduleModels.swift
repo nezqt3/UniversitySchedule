@@ -57,7 +57,7 @@ final class ScheduleStore: ObservableObject {
 }
 
 // Formatted hh:mm
-fileprivate extension DateComponents {
+extension DateComponents {
     var hhmm: String {
         let h = String(format: "%02d", hour ?? 0)
         let m = String(format: "%02d", minute ?? 0)
