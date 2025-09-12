@@ -49,10 +49,9 @@ struct DaySchedule {
 // Хранилище (позже сюда приедет парсинг)
 final class ScheduleStore: ObservableObject {
     @Published var today: DaySchedule = SampleData.today()
-
     // На будущее: дернуть парсер/апи и обновить today
     func refresh() {
-        today = SampleData.today() // временно подставляем мок
+        today = SampleData.currentSchedule // временно подставляем мок
     }
 }
 
