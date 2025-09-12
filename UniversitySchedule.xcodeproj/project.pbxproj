@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		92DDDD432E7460EF00950A79 /* SwiftSoup in Frameworks */ = {isa = PBXBuildFile; productRef = 92DDDD422E7460EF00950A79 /* SwiftSoup */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		6D6BE1DC2E72FA2F00B46B66 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -42,6 +46,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				92DDDD432E7460EF00950A79 /* SwiftSoup in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -100,6 +105,7 @@
 			);
 			name = UniversitySchedule;
 			packageProductDependencies = (
+				92DDDD422E7460EF00950A79 /* SwiftSoup */,
 			);
 			productName = UniversitySchedule;
 			productReference = 6D6BE1CD2E72FA2F00B46B66 /* UniversitySchedule.app */;
@@ -177,6 +183,9 @@
 			);
 			mainGroup = 6D6BE1C42E72FA2E00B46B66;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				92DDDD412E7460EF00950A79 /* XCRemoteSwiftPackageReference "SwiftSoup" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 6D6BE1CE2E72FA2F00B46B66 /* Products */;
 			projectDirPath = "";
@@ -523,6 +532,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		92DDDD412E7460EF00950A79 /* XCRemoteSwiftPackageReference "SwiftSoup" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/scinfu/SwiftSoup";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.11.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		92DDDD422E7460EF00950A79 /* SwiftSoup */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 92DDDD412E7460EF00950A79 /* XCRemoteSwiftPackageReference "SwiftSoup" */;
+			productName = SwiftSoup;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 6D6BE1C52E72FA2F00B46B66 /* Project object */;
 }

@@ -66,13 +66,6 @@ struct ScheduleView: View {
 
     private var footer: some View {
         HStack {
-            if let next = nextLesson() {
-                Text("Следующее: \(next.title) • \(next.timeRangeString)")
-            } else {
-                Text("Пары на сегодня закончились")
-            }
-            Spacer()
-            // быстрые кнопки (на будущее)
             Menu {
                 Button("Открыть настройки…") {
                     NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
