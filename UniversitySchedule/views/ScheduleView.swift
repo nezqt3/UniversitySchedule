@@ -91,6 +91,7 @@ struct ScheduleView: View {
         HStack {
             Text(getGroupInfo())
             Spacer()
+            
             Menu {
                 Button("Открыть настройки…") {
                     NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
@@ -99,9 +100,12 @@ struct ScheduleView: View {
                 Button("Выйти", role: .destructive) { NSApp.terminate(nil) }
             } label: {
                 Image(systemName: "ellipsis.circle")
+                    .symbolRenderingMode(.monochrome)
             }
+            .labelStyle(.iconOnly)
             .menuStyle(.borderlessButton)
             .fixedSize()
+            .tint(.secondary)
         }
         .font(.footnote)
         .foregroundStyle(.secondary)
