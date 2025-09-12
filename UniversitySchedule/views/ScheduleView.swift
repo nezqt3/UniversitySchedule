@@ -194,7 +194,8 @@ struct BreakRow: View {
 
             HStack(spacing: 6) {
                 Text("Перемена")
-                    .font(.caption.weight(.semibold))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 Text("•")
                     .font(.caption)
                     .foregroundStyle(.secondary)
