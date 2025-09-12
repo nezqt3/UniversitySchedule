@@ -15,9 +15,11 @@ struct UniversityScheduleApp: App {
         // Меню-бар иконка + поповер
         MenuBarExtra("Schedule", systemImage: "calendar") {
             ScheduleView(store: store)
-                .frame(width: 340) // компактная ширина поповера
+                .frame(width: 340)
                 .padding(12)
         }
+        .menuBarExtraStyle(.window)   // ← ключевая строка
+
         // (опц.) Окно настроек на будущее
         Settings {
             VStack(alignment: .leading, spacing: 12) {
