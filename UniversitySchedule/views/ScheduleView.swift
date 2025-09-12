@@ -55,12 +55,19 @@ struct ScheduleView: View {
     }
 
     private var lessonsList: some View {
-        VStack(spacing: 8) {
-            ForEach(store.today.lessons) { lesson in
-                LessonRow(lesson: lesson, isNow: isNow(lesson))
+        let items = buildItems(store.today.lessons)
+        return VStack(spacing: 8) {
+            ForEach(items) { item in
+                switch item {
+                case .lesson(let l):
+                    LessonRow(lesson: l, isNow: isNow(l))
+                case .break(let b):
+                    BreakRow(info: b)
+                }
             }
         }
     }
+
 
     private var emptyState: some View {
         HStack(spacing: 8) {
@@ -74,7 +81,7 @@ struct ScheduleView: View {
     }
     
     private var breakBetweenLessons: some View {
-        HStack{
+        VStack(spacing: 4) {
             Spacer()
             }
         }
@@ -136,6 +143,33 @@ struct ScheduleView: View {
         let result = try await parser.parseHtml(from: url)
         return result
     }
+    
+    private func buildItems(_ lessons: [Lesson]) -> [ScheduleItem] {
+        guard !lessons.isEmpty else { return [] }
+        let cal = Calendar.current
+        let now = Date()
+
+        func toDate(_ c: DateComponents) -> Date {
+            cal.date(bySettingHour: c.hour ?? 0, minute: c.minute ?? 0, second: 0, of: now) ?? now
+        }
+
+        let sorted = lessons.sorted { toDate($0.start) < toDate($1.start) }
+        var items: [ScheduleItem] = [.lesson(sorted[0])]
+
+        for i in 0..<(sorted.count - 1) {
+            let cur = sorted[i]
+            let next = sorted[i + 1]
+            let curEnd = toDate(cur.end)
+            let nextStart = toDate(next.start)
+            if nextStart > curEnd {
+                // есть окно → вставляем перемену
+                let br = BreakInfo(start: cur.end, end: next.start)
+                items.append(.break(br))
+            }
+            items.append(.lesson(next))
+        }
+        return items
+    }
 
     private func nextLesson() -> Lesson? {
         let cal = Calendar.current
@@ -149,7 +183,72 @@ struct ScheduleView: View {
         })
     }
 }
+struct BreakRow: View {
+    let info: BreakInfo
 
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "cup.and.saucer.fill")
+                .frame(width: 22)
+                .opacity(0.8)
+
+            HStack(spacing: 6) {
+                Text("Перемена")
+                    .font(.caption.weight(.semibold))
+                Text("•")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text("\(info.minutes) мин")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text("•")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(info.timeRangeString)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            .lineLimit(1)
+
+            Spacer()
+        }
+        // компактнее: меньше паддинги и более светлый фон
+        .padding(.vertical, 4)      // ↓ было 8 у LessonRow
+        .padding(.horizontal, 8)
+        .background(.gray.opacity(0.04), in: .rect(cornerRadius: 10))
+    }
+}
+
+struct BreakInfo: Identifiable, Hashable {
+    let id = UUID()
+    let start: DateComponents
+    let end: DateComponents
+
+    var minutes: Int {
+        let cal = Calendar.current
+        let now = Date()
+        guard
+            let s = cal.date(bySettingHour: start.hour ?? 0, minute: start.minute ?? 0, second: 0, of: now),
+            let e = cal.date(bySettingHour: end.hour ?? 0,   minute: end.minute ?? 0,   second: 0, of: now)
+        else { return 0 }
+        return max(Int(e.timeIntervalSince(s) / 60), 0)
+    }
+
+    var timeRangeString: String { "\(start.hhmm)–\(end.hhmm)" }
+}
+
+// то, что будем рендерить в списке
+enum ScheduleItem: Identifiable, Hashable {
+    case lesson(Lesson)
+    case `break`(BreakInfo)
+
+    var id: String {
+        switch self {
+        case .lesson(let l): return "lesson-\(l.id)"
+        case .break(let b):  return "break-\(b.id)"
+        }
+    }
+}
 // Отдельная “строка пары”
 struct LessonRow: View {
     let lesson: Lesson
