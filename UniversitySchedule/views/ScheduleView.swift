@@ -4,55 +4,56 @@
 //
 //  Created by Верещагин Илья on 11.09.2025.
 //
-
 import SwiftUI
 
 struct ScheduleView: View {
     @ObservedObject var store: ScheduleStore
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             header
-            if store.today.lessons.isEmpty {
-                emptyState
-            } else {
-                lessonsList
-            }
+            if store.today.lessons.isEmpty { emptyState } else { lessonsList }
             footer
+        }
+        .task { store.refresh() }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active { store.refresh() }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            store.refresh()
         }
     }
 
     private var header: some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Расписание на сегодня")
-                    .font(.headline)
+                Text("Расписание на сегодня").font(.headline)
                 Text(dateString(store.today.date))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
             Spacer()
             Button {
-                Task {
-                    do {
-                        let myres = try await getInformationAboutWeb()
-                        print(myres)
-                        store.refresh()
-                    } catch {
-                        print("Ошибка парсинга: \(error)")
+                store.refresh(force: true) // ручной форс, кулдаун обходится
+            } label: {
+                Group {
+                    if store.isLoading {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .imageScale(.medium)
                     }
                 }
-            } label: {
-                Image(systemName: "arrow.clockwise")
-                    .imageScale(.medium)
-                    .help("Обновить")
             }
             .buttonStyle(.borderless)
             .padding(.trailing, 9)
-
+            .disabled(store.isLoading)
         }
     }
+
+
 
     private var lessonsList: some View {
         let items = buildItems(store.today.lessons)
@@ -79,12 +80,6 @@ struct ScheduleView: View {
         .frame(maxWidth: .infinity, alignment: .center)
         .padding(.vertical, 24)
     }
-    
-    private var breakBetweenLessons: some View {
-        VStack(spacing: 4) {
-            Spacer()
-            }
-        }
     
 
     private var footer: some View {
@@ -115,7 +110,7 @@ struct ScheduleView: View {
 
     // MARK: - Helpers
     private func getGroupInfo() -> String {
-        let Group = "ТРПО25-2" // В дальнейшем задавать группу через настройки чтобы пользователь мог выбрать
+        let Group = "ТРПО25-2" // в дальнейшем задавать группу через настройки чтобы пользователь мог выбрать
         return Group
     }
     
@@ -141,6 +136,7 @@ struct ScheduleView: View {
         return now >= start && now <= end
     }
     
+    
     func getInformationAboutWeb() async throws -> Int {
         let parser = HTMLGrabber()
         
@@ -148,6 +144,7 @@ struct ScheduleView: View {
         
         return text
     }
+    
     
     private func buildItems(_ lessons: [Lesson]) -> [ScheduleItem] {
         guard !lessons.isEmpty else { return [] }
@@ -167,7 +164,7 @@ struct ScheduleView: View {
             let curEnd = toDate(cur.end)
             let nextStart = toDate(next.start)
             if nextStart > curEnd {
-                // есть окно → вставляем перемену
+                // есть окно -> вставляем перемену
                 let br = BreakInfo(start: cur.end, end: next.start)
                 items.append(.break(br))
             }
@@ -176,6 +173,7 @@ struct ScheduleView: View {
         return items
     }
 
+    
     private func nextLesson() -> Lesson? {
         let cal = Calendar.current
         let now = Date()
@@ -188,6 +186,8 @@ struct ScheduleView: View {
         })
     }
 }
+
+
 struct BreakRow: View {
     let info: BreakInfo
 
@@ -198,32 +198,19 @@ struct BreakRow: View {
                 .opacity(0.8)
 
             HStack(spacing: 6) {
-                Text("Перемена")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text("•")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text("\(info.minutes) мин")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text("•")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text(info.timeRangeString)
+                Text("Перемена • \(info.minutes) мин • \(info.timeRangeString)")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
-            .lineLimit(1)
 
             Spacer()
         }
-        // компактнее: меньше паддинги и более светлый фон
-        .padding(.vertical, 4)      // ↓ было 8 у LessonRow
+        .padding(.vertical, 4)
         .padding(.horizontal, 8)
         .background(.gray.opacity(0.04), in: .rect(cornerRadius: 10))
     }
 }
+
 
 struct BreakInfo: Identifiable, Hashable {
     let id = UUID()
@@ -243,7 +230,7 @@ struct BreakInfo: Identifiable, Hashable {
     var timeRangeString: String { "\(start.hhmm)–\(end.hhmm)" }
 }
 
-// то, что будем рендерить в списке
+
 enum ScheduleItem: Identifiable, Hashable {
     case lesson(Lesson)
     case `break`(BreakInfo)
@@ -255,7 +242,9 @@ enum ScheduleItem: Identifiable, Hashable {
         }
     }
 }
-// Отдельная “строка пары”
+
+
+
 struct LessonRow: View {
     let lesson: Lesson
     let isNow: Bool

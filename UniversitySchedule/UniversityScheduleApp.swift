@@ -18,18 +18,8 @@ struct UniversityScheduleApp: App {
                 .frame(width: 340)
                 .padding(12)
         }
-        .menuBarExtraStyle(.window)   // ← ключевая строка
+        .menuBarExtraStyle(.window)
 
-        // (опц.) Окно настроек на будущее
-        Settings {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Settings").font(.title2)
-                Text("Здесь потом добавим выбор группы/логин и т.п.")
-                    .foregroundStyle(.secondary)
-            }
-            .padding()
-            .frame(width: 420)
-        }
     }
 }
 
