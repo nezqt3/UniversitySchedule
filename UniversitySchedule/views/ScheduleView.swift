@@ -11,9 +11,12 @@ struct ScheduleView: View {
     @Environment(\.colorScheme) private var scheme
     @Environment(\.scenePhase) private var scenePhase
     
+    @State private var scheduleId: String = ""
     @State private var scheduleName: String = ""
+    @State private var showingScheduleEditor = false
     
     public var groupName: String = "ТРПО25-2"
+    @State private var results: [HTMLGrabber.ScheduleItem] = []
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -30,6 +33,9 @@ struct ScheduleView: View {
         }
     }
 
+    
+    // MARK: HEADER
+    
     private var header: some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
@@ -85,37 +91,76 @@ struct ScheduleView: View {
         .padding(.vertical, 24)
     }
     
+    // MARK: FOOTER
+
+    @State private var showingPopover = false
 
     private var footer: some View {
         HStack {
             Text(getGroupInfo())
             Spacer()
-            
-            Menu {
-                TextField("Введите расписание", text: $scheduleName)
-                    .padding()
-                Divider()
-                Button("Выйти", role: .destructive) { NSApp.terminate(nil) }
+
+            Button {
+                showingPopover.toggle()
             } label: {
                 Image(systemName: "ellipsis.circle")
-                    .symbolRenderingMode(.monochrome)
             }
-            .labelStyle(.iconOnly)
-            .menuStyle(.borderlessButton)
-            .fixedSize()
-            .tint(.secondary)
+            .popover(isPresented: $showingPopover) {
+                VStack {
+                    TextField("Введите расписание", text: $scheduleName)
+                        .textFieldStyle(.roundedBorder)
+                        .padding()
+                        .onSubmit {
+                            Task {
+                                do {
+                                    let grabber: HTMLGrabber = HTMLGrabber()
+                                    results = try await grabber.searchGroup(scheduleName)
+                                    print(results)
+                                } catch {
+                                    print("Ошибка при поиске группы: \(error)")
+                                }
+                            }
+                        }
+                    if results.isEmpty {
+                        Text("Нет результатов").foregroundColor(.secondary)
+                    } else {
+                      List(results) { item in
+                      Button {
+                          self.scheduleId = item.id
+                          self.scheduleName = item.label
+                          showingPopover = false
+                          
+                          Task {
+                              do {
+                                  let result = try await getInformationAboutWeb()
+                                  print("Result: \(result)")
+                                  // Обновите store или состояние здесь
+                              } catch {
+                                  print("Ошибка при получении расписания: \(error)")
+                              }
+                          }
+                      } label: {
+                         Text(item.label)
+                      }
+                    }
+                      .frame(height: 200)
+                            }
+                    Button("Закрыть") { showingPopover = false }
+                }
+                .padding()
+                .frame(width: 300)
+            }
         }
-        .font(.footnote)
-        .foregroundStyle(.secondary)
-        .padding(.top, 6)
-//        .padding(.trailing, 8)
     }
+
+    
+
+    // MARK: - Getters/Setters
     
     private mutating func setGroupInfo(groupName: String) {
         self.groupName = groupName
     }
-
-    // MARK: - Helpers
+    
     private func getGroupInfo() -> String {
         return self.groupName
     }
@@ -145,8 +190,7 @@ struct ScheduleView: View {
     
     func getInformationAboutWeb() async throws -> Int {
         let parser = HTMLGrabber()
-        
-        let text = try await parser.fetchText(from: "https://ruz.fa.ru/api/schedule/group/155274")
+        let text = try await parser.fetchText(from: "https://ruz.fa.ru/api/schedule/group/\(self.scheduleId)")
         
         return text
     }
