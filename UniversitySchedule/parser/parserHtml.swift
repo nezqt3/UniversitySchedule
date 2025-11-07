@@ -20,6 +20,14 @@ enum GrabErr: LocalizedError {
 
 final class HTMLGrabber {
 
+    struct ScheduleItem: Codable {
+        let type: String
+        let id: Int
+        let label: String
+        let description: String
+        let guid: String
+    }
+    
     func fetchText(from urlString: String, select css: String? = nil) async throws -> Int {
         let data = try await fetchData(urlString: urlString, retries: 3)
         if isJSON(data: data) {
@@ -139,6 +147,21 @@ final class HTMLGrabber {
         let first = data.first!
         return first == UInt8(ascii: "{") || first == UInt8(ascii: "[")
     }
+    
+    private func searchGroup(_ groupName: String) async throws -> [ScheduleItem] {
+        let parser = HTMLGrabber()
+        let urlString = "http://109.172.100.64:7000/api/ruz/schedule/search?term=\(groupName)&type=group"
+        let text = try await parser.fetchText(from: urlString)
+        
+        guard let url = URL(string: urlString) else {
+                throw URLError(.badURL)
+            }
+        
+        let (data, _) = try await URLSession.shared.data(from: url)
+        let groupsItems = try JSONDecoder().decode([ScheduleItem].self, from: data)
+        return groupsItems
+    }
+    
     private func jsonToPrettyString(_ data: Data) -> String? {
         guard let obj = try? JSONSerialization.jsonObject(with: data),
               let pretty = try? JSONSerialization.data(withJSONObject: obj, options: [.prettyPrinted]),

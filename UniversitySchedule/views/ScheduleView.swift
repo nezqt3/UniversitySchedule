@@ -10,6 +10,10 @@ struct ScheduleView: View {
     @ObservedObject var store: ScheduleStore
     @Environment(\.colorScheme) private var scheme
     @Environment(\.scenePhase) private var scenePhase
+    
+    @State private var scheduleName: String = ""
+    
+    public var groupName: String = "ТРПО25-2"
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -88,9 +92,8 @@ struct ScheduleView: View {
             Spacer()
             
             Menu {
-                Button("Открыть настройки…") {
-                    NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
-                }
+                TextField("Введите расписание", text: $scheduleName)
+                    .padding()
                 Divider()
                 Button("Выйти", role: .destructive) { NSApp.terminate(nil) }
             } label: {
@@ -107,11 +110,14 @@ struct ScheduleView: View {
         .padding(.top, 6)
 //        .padding(.trailing, 8)
     }
+    
+    private mutating func setGroupInfo(groupName: String) {
+        self.groupName = groupName
+    }
 
     // MARK: - Helpers
     private func getGroupInfo() -> String {
-        let Group = "ТРПО25-2" // в дальнейшем задавать группу через настройки чтобы пользователь мог выбрать
-        return Group
+        return self.groupName
     }
     
     private func dateString(_ date: Date) -> String {
