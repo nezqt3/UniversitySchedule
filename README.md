@@ -1,7 +1,7 @@
 <h1>Помощник для macOS</h1>
 
 <h2>Стуктура проекта</h2>
-```
+<pre>
 UniversitySchedule/
 │
 ├── data/
@@ -17,7 +17,7 @@ UniversitySchedule/
     ├── GlassView.swift           # Компонент стеклянного интерфейса (GlassCard)
     ├── ScheduleView.swift        # Основной экран расписания
     └── ScheduleView_Previews.swift # Превью интерфейса в Xcode
-```
+</pre>
 
 📄 Лицензия
 
