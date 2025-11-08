@@ -23,7 +23,7 @@ struct ScheduleView: View {
     // MARK: BODY
     
     var body: some View {
-        GlassCard {
+        TahoeGlassCard {
             VStack(alignment: .leading, spacing: 5) {
                 header
                 Divider()
@@ -100,7 +100,7 @@ struct ScheduleView: View {
     // MARK: FOOTER
 
     private var footer: some View {
-        GlassCard(cornerRadius: 14, padding: 10, shadowRadius: 10) {
+        TahoeGlassCard(cornerRadius: 14, padding: 10, shadowRadius: 10) {
             HStack(spacing: 12) {
                 // Название текущей группы
                 HStack(spacing: 6) {
@@ -320,22 +320,20 @@ struct BreakRow: View {
     let info: BreakInfo
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 6) {
             Image(systemName: "cup.and.saucer.fill")
-                .frame(width: 22)
-                .opacity(0.8)
+                .frame(width: 18)
+                .opacity(0.7)
 
-            HStack(spacing: 6) {
-                Text("Перемена • \(info.minutes) мин • \(info.timeRangeString)")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
+            Text("Перемена • \(info.minutes) мин • \(info.timeRangeString)")
+                .font(.caption2)
+                .foregroundColor(.secondary)
 
             Spacer()
         }
-        .padding(.vertical, 4)
-        .padding(.horizontal, 8)
-        .background(.gray.opacity(0.04), in: .rect(cornerRadius: 10))
+        .padding(.vertical, 3)
+        .padding(.horizontal, 6)
+        .background(Color.gray.opacity(0.03), in: RoundedRectangle(cornerRadius: 8))
     }
 }
 
@@ -378,53 +376,52 @@ struct LessonRow: View {
     let isNow: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            // Заголовок урока с иконкой и "сейчас"
-            HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
                 Image(systemName: lesson.kind.iconName)
-                    .frame(width: 22)
+                    .frame(width: 18)
                     .foregroundColor(.secondary)
-                
+
                 Text(lesson.title)
-                    .font(.headline.weight(.semibold))
+                    .font(.subheadline.weight(.semibold))
                     .lineLimit(1)
-                
+
                 Spacer()
-                
+
                 if isNow {
                     Text("сейчас")
                         .font(.caption2)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.cyan.opacity(0.18), in: Capsule())
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 1)
+                        .background(Color.cyan.opacity(0.15), in: Capsule())
                 }
             }
 
-            // Время урока с отступом, чтобы было под иконкой
             Text("\(lesson.timeRangeString) • \(lesson.kind.rawValue)")
-                .font(.subheadline)
+                .font(.caption)
                 .foregroundColor(.secondary)
-                .padding(.leading, 30) // <-- отступ под иконку
+                .padding(.leading, 24)
 
-            // Все аудитории + преподаватели
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 2) {
                 ForEach(lesson.locations, id: \.room) { loc in
-                    HStack(spacing: 6) {
+                    HStack(spacing: 4) {
                         Image(systemName: "mappin.and.ellipse")
                             .foregroundColor(.secondary)
+                            .font(.caption2)
                         Text(loc.room)
+                            .font(.caption2)
                         if let teacher = loc.teacher {
-                            Text("•")
-                            Text(teacher)
+                            Text("•").font(.caption2)
+                            Text(teacher).font(.caption2)
                         }
                     }
-                    .font(.caption)
                     .foregroundColor(.secondary)
                 }
             }
-            .padding(.leading, 30)
+            .padding(.leading, 24)
         }
-        .padding(12)
-        .background(isNow ? Color.cyan.opacity(0.08) : Color.gray.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
+        .padding(8)
+        .background(isNow ? Color.cyan.opacity(0.06) : Color.gray.opacity(0.04),
+                    in: RoundedRectangle(cornerRadius: 10))
     }
 }
