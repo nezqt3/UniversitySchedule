@@ -1,86 +1,23 @@
-🕒 UniversitySchedule for macOS
+<h1>Помощник для macOS</h1>
 
-Элегантное расписание пар прямо в меню-баре macOS — всегда под рукой, без лишних окон и вкладок.
-
-🌟 Возможности
-
-✅ Меню-бар приложение — доступ к расписанию в один клик
-✅ Поддержка нескольких групп — быстрое переключение между ними
-✅ Автоматическое обновление расписания каждый день в полночь
-✅ Glass-эффект (macOS Sonoma style) — современный и аккуратный дизайн
-✅ Работа офлайн — данные последнего расписания сохраняются локально
-✅ Фильтрация по дням недели
-✅ Асинхронная загрузка (Swift Concurrency, async/await)
-
-🧠 Технологии
-Компонент	Используется для
-🧩 SwiftUI	Интерфейс и взаимодействие с меню-баром
-🌐 async/await	Асинхронная загрузка расписания
-🔍 HTMLGrabber	Поиск и парсинг групп с сайта ruz.fa.ru
-🧱 GlassCard	Кастомный компонент для эффекта стекла
-💾 ObservableObject / @Published	Реактивное обновление данных
-🕰 DispatchSourceTimer	Автоматическое обновление в полночь
-📸 Скриншоты
-Основное окно	Выбор группы	Эффект стекла
-
-⚙️ Установка
-🧩 Через Xcode
-
-Клонируй проект:
-
-git clone https://github.com/yourusername/UniversitySchedule.git
-cd UniversitySchedule
-
-Открой .xcodeproj или .xcodeworkspace
-
-Собери и запусти проект (Cmd + R)
-
-Готово! Приложение появится в меню-баре 🍎
-
-🔧 Настройки
-
-⚙️ Изменить группу по умолчанию — в ScheduleStore.swift:
-
-public let url = "https://ruz.fa.ru/api/schedule/group/155281"
-
-
-🌙 Тема интерфейса автоматически адаптируется под Light/Dark Mode
-
-🕓 Обновление расписания происходит каждые 3 часа (или вручную)
-
-🎨 Интерфейс со стеклянным эффектом
-
-Компонент GlassCard делает интерфейс в стиле macOS Sonoma glass:
-
-GlassCard {
-    VStack(alignment: .leading, spacing: 10) {
-        header
-        Divider()
-        if store.today.lessons.isEmpty { emptyState } else { lessonsList }
-        Divider()
-        footer
-    }
-}
-.padding()
-
-
-Эффект создаётся с помощью .ultraThinMaterial и мягких теней для глубины.
-
-🧩 TODO
-
- Добавить виджет на рабочий стол
-
- Поддержка преподавателей и аудиторий
-
- Кэширование расписания между перезапусками
-
- Уведомления о начале пары
-
-🧑‍💻 Автор
-
-Илья Верещагин
-📧 [@your_email_here]
-🌐 GitHub: @yourusername
+<h2>Стуктура проекта</h2>
+```
+UniversitySchedule/
+│
+├── data/
+│   └── SampleData.swift          # Тестовые данные и примеры расписаний
+│
+├── models/
+│   └── ScheduleModels.swift      # Модели: Lesson, DaySchedule и др.
+│
+├── parser/
+│   └── parserHtml.swift          # HTML-парсер расписания с ruz.fa.ru
+│
+└── views/
+    ├── GlassView.swift           # Компонент стеклянного интерфейса (GlassCard)
+    ├── ScheduleView.swift        # Основной экран расписания
+    └── ScheduleView_Previews.swift # Превью интерфейса в Xcode
+```
 
 📄 Лицензия
 
