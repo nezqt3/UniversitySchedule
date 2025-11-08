@@ -55,7 +55,7 @@ final class ScheduleStore: ObservableObject {
     @Published var isLoading = false
 
     private let grabber = HTMLGrabber()
-    private let url = "https://ruz.fa.ru/api/schedule/group/155274"
+    public var url = "https://ruz.fa.ru/api/schedule/group/155281"
 
     private var lastRefresh: Date?
     private let cooldown: TimeInterval = 3 * 60 * 60   // 3 часа
@@ -69,7 +69,6 @@ final class ScheduleStore: ObservableObject {
         let now = Date()
         let isNewDay = lastRefresh.map { !Calendar.current.isDate($0, inSameDayAs: now) } ?? true
 
-        // если не форс и не новый день — уважай кулдаун
         if !force && !isNewDay, let last = lastRefresh, now.timeIntervalSince(last) < cooldown {
             return
         }

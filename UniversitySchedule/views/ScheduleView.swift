@@ -15,22 +15,28 @@ struct ScheduleView: View {
     @State private var scheduleName: String = ""
     @State private var showingScheduleEditor = false
     
-    public var groupName: String = "ТРПО25-2"
+    public var groupName: String = "ДИРПО25-1с"
     @State private var results: [HTMLGrabber.ScheduleItem] = []
 
+    // MARK: BODY
+    
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            header
-            if store.today.lessons.isEmpty { emptyState } else { lessonsList }
-            footer
+        GlassCard {
+            VStack(alignment: .leading, spacing: 5) {
+                header
+                Divider()
+                if store.today.lessons.isEmpty {
+                    emptyState
+                } else {
+                    lessonsList
+                }
+                Divider()
+                footer
+            }
+            .task { store.refresh() }
+            .padding(8)
         }
-        .task { store.refresh() }
-        .onChange(of: scenePhase) { _, newPhase in
-            if newPhase == .active { store.refresh() }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-            store.refresh()
-        }
+        .padding(4)
     }
 
     
@@ -83,7 +89,7 @@ struct ScheduleView: View {
     private var emptyState: some View {
         HStack(spacing: 8) {
             Image(systemName: "sun.max")
-            Text("Сегодня занятий нет 🎉")
+            Text("Сегодня занятий нет")
         }
         .font(.subheadline)
         .foregroundStyle(.secondary)
@@ -126,18 +132,11 @@ struct ScheduleView: View {
                     } else {
                       List(results) { item in
                       Button {
-                          self.scheduleId = item.id
-                          self.scheduleName = item.label
                           showingPopover = false
+                          store.url = "https://ruz.fa.ru/api/schedule/group/\(item.id)"
                           
                           Task {
-                              do {
-                                  let result = try await getInformationAboutWeb()
-                                  print("Result: \(result)")
-                                  // Обновите store или состояние здесь
-                              } catch {
-                                  print("Ошибка при получении расписания: \(error)")
-                              }
+                            store.refresh(force: true)
                           }
                       } label: {
                          Text(item.label)
@@ -152,8 +151,6 @@ struct ScheduleView: View {
             }
         }
     }
-
-    
 
     // MARK: - Getters/Setters
     
@@ -185,14 +182,6 @@ struct ScheduleView: View {
                                second: 0, of: now)
         else { return false }
         return now >= start && now <= end
-    }
-    
-    
-    func getInformationAboutWeb() async throws -> Int {
-        let parser = HTMLGrabber()
-        let text = try await parser.fetchText(from: "https://ruz.fa.ru/api/schedule/group/\(self.scheduleId)")
-        
-        return text
     }
     
     
