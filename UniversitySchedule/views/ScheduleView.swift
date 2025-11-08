@@ -15,7 +15,8 @@ struct ScheduleView: View {
     @State private var scheduleName: String = ""
     @State private var showingScheduleEditor = false
     
-    public var groupName: String = "ДИРПО25-1с"
+    @State public var groupName: String = "ДИРПО25-1с"
+    @State private var showingPopover = false
     @State private var results: [HTMLGrabber.ScheduleItem] = []
 
     // MARK: BODY
@@ -99,58 +100,118 @@ struct ScheduleView: View {
     
     // MARK: FOOTER
 
-    @State private var showingPopover = false
-
     private var footer: some View {
-        HStack {
-            Text(getGroupInfo())
-            Spacer()
+        GlassCard(cornerRadius: 14, padding: 10, shadowRadius: 10) {
+            HStack(spacing: 12) {
+                // Название текущей группы
+                HStack(spacing: 6) {
+                    Image(systemName: "person.3.sequence")
+                        .foregroundStyle(.secondary)
+                    Text(groupName.isEmpty ? "Группа не выбрана" : groupName)
+                        .font(.callout.weight(.medium))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                }
 
-            Button {
-                showingPopover.toggle()
-            } label: {
-                Image(systemName: "ellipsis.circle")
-            }
-            .popover(isPresented: $showingPopover) {
-                VStack {
-                    TextField("Введите расписание", text: $scheduleName)
-                        .textFieldStyle(.roundedBorder)
-                        .padding()
-                        .onSubmit {
-                            Task {
-                                do {
-                                    let grabber: HTMLGrabber = HTMLGrabber()
-                                    results = try await grabber.searchGroup(scheduleName)
-                                    print(results)
-                                } catch {
-                                    print("Ошибка при поиске группы: \(error)")
+                Spacer()
+
+                // Кнопка меню
+                Button {
+                    showingPopover.toggle()
+                } label: {
+                    Image(systemName: "ellipsis.circle.fill")
+                        .symbolRenderingMode(.hierarchical)
+                        .font(.system(size: 18))
+                        .foregroundStyle(.secondary)
+                        .padding(6)
+                        .background(
+                            Circle()
+                                .fill(.ultraThinMaterial)
+                                .shadow(radius: 2)
+                        )
+                }
+                .buttonStyle(.plain)
+                .popover(isPresented: $showingPopover) {
+                    VStack(spacing: 12) {
+                        Text("Выбор расписания")
+                            .font(.headline)
+                            .padding(.top, 8)
+
+                        TextField("Введите название группы", text: $scheduleName)
+                            .textFieldStyle(.roundedBorder)
+                            .padding(.horizontal)
+                            .onSubmit {
+                                Task {
+                                    do {
+                                        let grabber = HTMLGrabber()
+                                        results = try await grabber.searchGroup(scheduleName)
+                                    } catch {
+                                        print("Ошибка при поиске группы: \(error)")
+                                    }
                                 }
                             }
-                        }
-                    if results.isEmpty {
-                        Text("Нет результатов").foregroundColor(.secondary)
-                    } else {
-                      List(results) { item in
-                      Button {
-                          showingPopover = false
-                          store.url = "https://ruz.fa.ru/api/schedule/group/\(item.id)"
-                          
-                          Task {
-                            store.refresh(force: true)
-                          }
-                      } label: {
-                         Text(item.label)
-                      }
-                    }
-                      .frame(height: 200)
+
+                        Divider().padding(.horizontal)
+
+                        if results.isEmpty {
+                            Text("Нет результатов")
+                                .foregroundColor(.secondary)
+                                .padding()
+                        } else {
+                            ScrollView {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    ForEach(results) { item in
+                                        Button {
+                                            showingPopover = false
+                                            store.url = "https://ruz.fa.ru/api/schedule/group/\(item.id)"
+                                            groupName = item.label
+                                            Task {
+                                                store.refresh(force: true)
+                                            }
+                                        } label: {
+                                            HStack {
+                                                Text(item.label)
+                                                    .foregroundColor(.primary)
+                                                Spacer()
+                                                Image(systemName: "chevron.right")
+                                                    .font(.caption)
+                                                    .foregroundColor(.secondary)
+                                            }
+                                            .padding(8)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 8)
+                                                    .fill(.thinMaterial)
+                                                    .opacity(0.6)
+                                            )
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                }
+                                .padding(.horizontal)
+                                .padding(.bottom, 8)
                             }
-                    Button("Закрыть") { showingPopover = false }
+                            .frame(height: 220)
+                        }
+
+                        Button("Закрыть") {
+                            showingPopover = false
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .padding(.bottom, 8)
+                    }
+                    .frame(width: 320)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(.ultraThinMaterial)
+                            .shadow(radius: 20)
+                    )
+                    .padding()
                 }
-                .padding()
-                .frame(width: 300)
             }
         }
+        .padding(.top, 8)
     }
+
 
     // MARK: - Getters/Setters
     
