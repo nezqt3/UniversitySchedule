@@ -323,17 +323,19 @@ struct BreakRow: View {
         HStack(spacing: 6) {
             Image(systemName: "cup.and.saucer.fill")
                 .frame(width: 18)
-                .opacity(0.7)
+                .opacity(0.8)
 
             Text("Перемена • \(info.minutes) мин • \(info.timeRangeString)")
                 .font(.caption2)
-                .foregroundColor(.secondary)
+                .foregroundColor(.primary)
 
             Spacer()
         }
-        .padding(.vertical, 3)
-        .padding(.horizontal, 6)
-        .background(Color.gray.opacity(0.03), in: RoundedRectangle(cornerRadius: 8))
+        .padding(.vertical, 6)
+        .padding(.horizontal, 8)
+        .background(Color.yellow.opacity(0.25))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .shadow(color: Color.black.opacity(0.1), radius: 3, x: 0, y: 2)
     }
 }
 
@@ -391,9 +393,9 @@ struct LessonRow: View {
                 if isNow {
                     Text("сейчас")
                         .font(.caption2)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 1)
-                        .background(Color.cyan.opacity(0.15), in: Capsule())
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.cyan.opacity(0.3), in: Capsule())
                 }
             }
 
@@ -415,13 +417,13 @@ struct LessonRow: View {
                             Text(teacher).font(.caption2)
                         }
                     }
-                    .foregroundColor(.secondary)
                 }
             }
             .padding(.leading, 24)
         }
-        .padding(8)
-        .background(isNow ? Color.cyan.opacity(0.06) : Color.gray.opacity(0.04),
-                    in: RoundedRectangle(cornerRadius: 10))
+        .padding(10)
+        .background(isNow ? Color.cyan.opacity(0.25) : Color.gray.opacity(0.15))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
     }
 }
