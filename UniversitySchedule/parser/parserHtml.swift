@@ -20,7 +20,7 @@ enum GrabErr: LocalizedError {
 
 final class HTMLGrabber {
 
-    struct ScheduleItem: Codable, Identifiable {
+    struct ScheduleItemInfo: Codable, Identifiable {
         let type: String
         let id: String
         let label: String
@@ -67,14 +67,13 @@ final class HTMLGrabber {
                 end: endTimeString,
                 title: title,
                 kind: lessonKind,
-                location: location,
-                teacher: teacher
+                locations: [LessonLocation(room: location, teacher: teacher)]
             )
             
             dict.append(lesson)
         }
         
-        
+        let groupedEvents = Dictionary(grouping: dict, by: { $0.start })
         SampleData.updateSchedule(with: dict)
         print(dict)
         
@@ -148,13 +147,13 @@ final class HTMLGrabber {
         return first == UInt8(ascii: "{") || first == UInt8(ascii: "[")
     }
     
-    public func searchGroup(_ groupName: String) async throws -> [ScheduleItem] {
+    public func searchGroup(_ groupName: String) async throws -> [ScheduleItemInfo] {
         let term = groupName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? groupName
         let urlString = "https://ruz.fa.ru/api/search?term=\(term)"
         guard let url = URL(string: urlString) else { throw URLError(.badURL) }
         
         let (data, _) = try await URLSession.shared.data(from: url)
-        let groupsItems = try JSONDecoder().decode([ScheduleItem].self, from: data)
+        let groupsItems = try JSONDecoder().decode([ScheduleItemInfo].self, from: data)
         
         return groupsItems.filter { !$0.label.isEmpty && !$0.label.contains(";") }
     }

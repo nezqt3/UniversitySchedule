@@ -24,10 +24,20 @@ struct ScheduleView_Previews: PreviewProvider {
         s.today = DaySchedule(
             date: now,
             lessons: [
-                Lesson(start: comps(start1), end: comps(end1),
-                       title: "Матан", kind: .lecture, location: "К-406", teacher: "Петров А.А."),
-                Lesson(start: comps(start2), end: comps(end2),
-                       title: "Линал", kind: .seminar, location: "Б-203", teacher: "Иванова Н.Н.")
+                Lesson(
+                    start: comps(start1),
+                    end: comps(end1),
+                    title: "Матан",
+                    kind: .lecture,
+                    locations: [LessonLocation(room: "К-406", teacher: "Петров А.А.")]
+                ),
+                Lesson(
+                    start: comps(start2),
+                    end: comps(end2),
+                    title: "Линал",
+                    kind: .seminar,
+                    locations: [LessonLocation(room: "Б-203", teacher: "Иванова Н.Н.")]
+                )
             ]
         )
         return s

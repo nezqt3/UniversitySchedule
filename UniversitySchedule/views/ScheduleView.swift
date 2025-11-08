@@ -6,6 +6,7 @@
 //
 import SwiftUI
 
+
 struct ScheduleView: View {
     @ObservedObject var store: ScheduleStore
     @Environment(\.colorScheme) private var scheme
@@ -15,9 +16,9 @@ struct ScheduleView: View {
     @State private var scheduleName: String = ""
     @State private var showingScheduleEditor = false
     
-    @State public var groupName: String = "ДИРПО25-1с"
+    @State public var groupName: String = ""
     @State private var showingPopover = false
-    @State private var results: [HTMLGrabber.ScheduleItem] = []
+    @State private var results: [HTMLGrabber.ScheduleItemInfo] = []
 
     // MARK: BODY
     
@@ -69,8 +70,6 @@ struct ScheduleView: View {
             .disabled(store.isLoading)
         }
     }
-
-
 
     private var lessonsList: some View {
         let items = buildItems(store.today.lessons)
@@ -248,28 +247,57 @@ struct ScheduleView: View {
     
     private func buildItems(_ lessons: [Lesson]) -> [ScheduleItem] {
         guard !lessons.isEmpty else { return [] }
+
         let cal = Calendar.current
         let now = Date()
-
+        
         func toDate(_ c: DateComponents) -> Date {
             cal.date(bySettingHour: c.hour ?? 0, minute: c.minute ?? 0, second: 0, of: now) ?? now
         }
 
-        let sorted = lessons.sorted { toDate($0.start) < toDate($1.start) }
-        var items: [ScheduleItem] = [.lesson(sorted[0])]
+        // Группируем уроки по времени начала
+        let groupedDict = Dictionary(grouping: lessons) { $0.start }
 
-        for i in 0..<(sorted.count - 1) {
-            let cur = sorted[i]
-            let next = sorted[i + 1]
-            let curEnd = toDate(cur.end)
-            let nextStart = toDate(next.start)
-            if nextStart > curEnd {
-                // есть окно -> вставляем перемену
-                let br = BreakInfo(start: cur.end, end: next.start)
-                items.append(.break(br))
-            }
-            items.append(.lesson(next))
+        // Сортировка
+        let sortedKeys = groupedDict.keys.sorted { lhs, rhs in
+            (lhs.hour ?? 0, lhs.minute ?? 0) < (rhs.hour ?? 0, rhs.minute ?? 0)
         }
+
+        var items: [ScheduleItem] = []
+        var previousEnd: Date? = nil
+
+        for key in sortedKeys {
+            let group = groupedDict[key]!
+
+            // Если есть разрыв — перемена
+            if let prevEnd = previousEnd {
+                let firstStart = toDate(group.first!.start)
+                if firstStart > prevEnd {
+                    let br = BreakInfo(
+                        start: cal.dateComponents([.hour, .minute], from: prevEnd),
+                        end: group.first!.start
+                    )
+                    items.append(.break(br))
+                }
+            }
+
+            // Объединяем все locations одного времени в один урок
+            let combinedLocations = group.flatMap { $0.locations }
+
+            // Добавляем объединённый урок (id генерируется автоматически)
+            let combinedLesson = Lesson(
+                start: group.first!.start,
+                end: group.map { $0.end }.max(by: { toDate($0) < toDate($1) }) ?? group.first!.end,
+                title: group.first!.title,
+                kind: group.first!.kind,
+                locations: combinedLocations
+            )
+            items.append(.lesson(combinedLesson))
+
+            // Обновляем previousEnd
+            previousEnd = group.map { toDate($0.end) }.max()
+        }
+
         return items
     }
 
@@ -350,43 +378,53 @@ struct LessonRow: View {
     let isNow: Bool
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: lesson.kind.iconName)
-                .frame(width: 22)
-                .padding(.top, 2)
-
-            VStack(alignment: .leading, spacing: 2) {
-                HStack {
-                    Text(lesson.title)
-                        .font(.subheadline.weight(.semibold))
-                        .lineLimit(1)
-                    if isNow {
-                        Text("сейчас")
-                            .font(.caption2)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(.green.opacity(0.18), in: .capsule)
-                    }
+        VStack(alignment: .leading, spacing: 6) {
+            // Заголовок урока с иконкой и "сейчас"
+            HStack(spacing: 8) {
+                Image(systemName: lesson.kind.iconName)
+                    .frame(width: 22)
+                    .foregroundColor(.secondary)
+                
+                Text(lesson.title)
+                    .font(.headline.weight(.semibold))
+                    .lineLimit(1)
+                
+                Spacer()
+                
+                if isNow {
+                    Text("сейчас")
+                        .font(.caption2)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.cyan.opacity(0.18), in: Capsule())
                 }
-                Text("\(lesson.timeRangeString) • \(lesson.kind.rawValue)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                HStack(spacing: 6) {
-                    Image(systemName: "mappin.and.ellipse")
-                    Text(lesson.location)
-                    if let teacher = lesson.teacher {
-                        Text("•")
-                        Text(teacher)
-                    }
-                }
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
             }
-            Spacer()
+
+            // Время урока с отступом, чтобы было под иконкой
+            Text("\(lesson.timeRangeString) • \(lesson.kind.rawValue)")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .padding(.leading, 30) // <-- отступ под иконку
+
+            // Все аудитории + преподаватели
+            VStack(alignment: .leading, spacing: 4) {
+                ForEach(lesson.locations, id: \.room) { loc in
+                    HStack(spacing: 6) {
+                        Image(systemName: "mappin.and.ellipse")
+                            .foregroundColor(.secondary)
+                        Text(loc.room)
+                        if let teacher = loc.teacher {
+                            Text("•")
+                            Text(teacher)
+                        }
+                    }
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                }
+            }
+            .padding(.leading, 30)
         }
-        .padding(8)
-        .background(isNow ? .green.opacity(0.08) : .gray.opacity(0.06), in: .rect(cornerRadius: 10))
+        .padding(12)
+        .background(isNow ? Color.cyan.opacity(0.08) : Color.gray.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
     }
 }

@@ -1,24 +1,23 @@
-//
-//  ScheduleModels.swift
-//  UniversitySchedule
-//
-//  Created by Верещагин Илья on 11.09.2025.
-//
+// MARK: - Lesson Models
 
 import Foundation
 import SwiftUI
 
+struct LessonLocation: Hashable, Identifiable {
+    let id = UUID()
+    let room: String
+    let teacher: String?
+}
+
 // Урок (пара)
 struct Lesson: Identifiable, Hashable {
     let id = UUID()
-    let start: DateComponents   // часы/минуты
+    let start: DateComponents
     let end: DateComponents
-    let title: String           // предмет
-    let kind: LessonKind        // лекция/семинар/лаб
-    let location: String        // аудитория/кампус
-    let teacher: String?        // опционально
+    let title: String
+    let kind: LessonKind
+    let locations: [LessonLocation]
 
-    // удобные строки времени
     var timeRangeString: String {
         "\(start.hhmm)–\(end.hhmm)"
     }
@@ -40,14 +39,68 @@ enum LessonKind: String, CaseIterable, Codable {
     }
 }
 
-// Расписание дня
 struct DaySchedule {
     let date: Date
     var lessons: [Lesson]
 }
 
-// Хранилище (позже сюда приедет парсинг)
-import SwiftUI
+// MARK: - Break Info
+
+struct LessonBreakInfo: Identifiable, Hashable {
+    let id = UUID()
+    let start: DateComponents
+    let end: DateComponents
+
+    var minutes: Int {
+        let cal = Calendar.current
+        let now = Date()
+        guard
+            let s = cal.date(bySettingHour: start.hour ?? 0, minute: start.minute ?? 0, second: 0, of: now),
+            let e = cal.date(bySettingHour: end.hour ?? 0, minute: end.minute ?? 0, second: 0, of: now)
+        else { return 0 }
+        return max(Int(e.timeIntervalSince(s)/60), 0)
+    }
+
+    var timeRangeString: String { "\(start.hhmm)–\(end.hhmm)" }
+}
+
+// MARK: - ScheduleItem
+
+enum LessonScheduleItem: Identifiable, Hashable {
+    case lesson(Lesson)
+    case `break`(LessonBreakInfo)
+
+    var id: String {
+        switch self {
+        case .lesson(let l): return "lesson-\(l.id)"
+        case .break(let b): return "break-\(b.id)"
+        }
+    }
+    
+    func hash(into hasher: inout Hasher) {
+        switch self {
+        case .lesson(let lesson):
+            hasher.combine("lesson")
+            hasher.combine(lesson.id)
+        case .break(let breakInfo):
+            hasher.combine("break")
+            hasher.combine(breakInfo.id)
+        }
+    }
+    
+    static func == (lhs: LessonScheduleItem, rhs: LessonScheduleItem) -> Bool {
+        switch (lhs, rhs) {
+        case (.lesson(let l1), .lesson(let l2)):
+            return l1.id == l2.id
+        case (.break(let b1), .break(let b2)):
+            return b1.id == b2.id
+        default:
+            return false
+        }
+    }
+}
+
+// MARK: - Schedule Store
 
 @MainActor
 final class ScheduleStore: ObservableObject {
@@ -55,10 +108,10 @@ final class ScheduleStore: ObservableObject {
     @Published var isLoading = false
 
     private let grabber = HTMLGrabber()
-    public var url = "https://ruz.fa.ru/api/schedule/group/155281"
+    public var url = ""
 
     private var lastRefresh: Date?
-    private let cooldown: TimeInterval = 3 * 60 * 60   // 3 часа
+    private let cooldown: TimeInterval = 3 * 60 * 60
     private var midnightTimer: DispatchSourceTimer?
 
     init() {
@@ -68,62 +121,48 @@ final class ScheduleStore: ObservableObject {
     func refresh(force: Bool = false) {
         let now = Date()
         let isNewDay = lastRefresh.map { !Calendar.current.isDate($0, inSameDayAs: now) } ?? true
-
-        if !force && !isNewDay, let last = lastRefresh, now.timeIntervalSince(last) < cooldown {
-            return
-        }
+        if !force && !isNewDay, let last = lastRefresh, now.timeIntervalSince(last) < cooldown { return }
         guard !isLoading else { return }
 
         isLoading = true
         Task {
             defer {
-                self.lastRefresh = Date()
-                self.isLoading = false
-                self.scheduleMidnightRefresh()   // на случай смены суток во время работы
+                lastRefresh = Date()
+                isLoading = false
+                scheduleMidnightRefresh()
             }
             do {
-                _ = try await grabber.fetchText(from: url) // HTMLGrabber кладёт в SampleData
-                self.today = SampleData.currentSchedule     // забираем состояние
+                _ = try await grabber.fetchText(from: url)
+                today = SampleData.currentSchedule
             } catch {
                 print("refresh error:", error)
             }
         }
     }
 
-    // MARK: - Midnight refresh (каждую полночь, игнорируя кулдаун)
     private func scheduleMidnightRefresh() {
         midnightTimer?.cancel()
-
         let cal = Calendar.current
-        let now = Date()
-        guard let nextMidnight = cal.nextDate(
-            after: now,
-            matching: DateComponents(hour: 0, minute: 0, second: 0),
-            matchingPolicy: .nextTime
-        ) else { return }
-
-        let interval = nextMidnight.timeIntervalSince(now)
+        guard let nextMidnight = cal.nextDate(after: Date(),
+                                              matching: DateComponents(hour: 0, minute: 0, second: 0),
+                                              matchingPolicy: .nextTime) else { return }
+        let interval = nextMidnight.timeIntervalSinceNow
         let t = DispatchSource.makeTimerSource(queue: .main)
-        t.schedule(
-            deadline: .now() + interval,
-            repeating: .seconds(24*60*60),
-            leeway: .seconds(60)
-        )
+        t.schedule(deadline: .now() + interval,
+                   repeating: .seconds(24*60*60),
+                   leeway: .seconds(60))
         t.setEventHandler { [weak self] in
-            self?.refresh(force: true) // новое расписание на сегодня
+            self?.refresh(force: true)
         }
         t.resume()
         midnightTimer = t
     }
 }
 
+// MARK: - Extensions
 
-
-// Formatted hh:mm
 extension DateComponents {
     var hhmm: String {
-        let h = String(format: "%02d", hour ?? 0)
-        let m = String(format: "%02d", minute ?? 0)
-        return "\(h):\(m)"
+        String(format: "%02d:%02d", hour ?? 0, minute ?? 0)
     }
 }
