@@ -29,12 +29,26 @@ enum LessonKind: String, CaseIterable, Codable {
     case lab = "Лабораторная"
     case other = "Другое"
 
-    var iconName: String {
+    func iconName(forTitle title: String) -> String {
+        let lowercasedTitle = title.lowercased()
+        
         switch self {
-        case .lecture: return "book"
-        case .seminar: return "person.2"
-        case .lab:     return "testtube.2"
-        case .other:   return "square.grid.2x2"
+        case .lecture:
+            if lowercasedTitle.contains("матем") {
+                return "function"
+            } else if lowercasedTitle.contains("физика") {
+                return "atom"
+            } else if lowercasedTitle.contains("литература") {
+                return "text.book.closed"
+            } else {
+                return "book"
+            }
+        case .seminar:
+            return "person.2.circle"
+        case .lab:
+            return "testtube.2.circle"
+        case .other:
+            return "square.grid.2x2"
         }
     }
 }

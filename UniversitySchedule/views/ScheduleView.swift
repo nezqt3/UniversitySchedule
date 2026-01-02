@@ -23,22 +23,22 @@ struct ScheduleView: View {
     // MARK: BODY
     
     var body: some View {
-        TahoeGlassCard {
-            VStack(alignment: .leading, spacing: 5) {
+        TahoeGlassCard(cornerRadius: 24, padding: 12) {
+            VStack(alignment: .leading, spacing: 12) {
                 header
-                Divider()
+                    .padding(.horizontal, 4)
+                
                 if store.today.lessons.isEmpty {
                     emptyState
                 } else {
                     lessonsList
                 }
-                Divider()
+                
                 footer
             }
-            .task { store.refresh() }
-            .padding(8)
         }
-        .padding(4)
+        .padding(10)
+        .frame(width: 320) // Примерная ширина виджета
     }
 
     
@@ -100,118 +100,143 @@ struct ScheduleView: View {
     // MARK: FOOTER
 
     private var footer: some View {
-        TahoeGlassCard(cornerRadius: 14, padding: 10, shadowRadius: 10) {
-            HStack(spacing: 12) {
-                // Название текущей группы
-                HStack(spacing: 6) {
-                    Image(systemName: "person.3.sequence")
+        HStack(spacing: 12) {
+            HStack(spacing: 8) {
+                ZStack {
+                    Circle()
+                        .fill(.white.opacity(0.1))
+                        .frame(width: 28, height: 28)
+                    
+                    Image(systemName: "person.2.fill")
+                        .font(.system(size: 12, weight: .semibold))
+                        .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(.secondary)
+                }
+
+                VStack(alignment: .leading, spacing: 0) {
                     Text(groupName.isEmpty ? "Группа не выбрана" : groupName)
-                        .font(.callout.weight(.medium))
+                        .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(.primary)
                         .lineLimit(1)
-                }
-
-                Spacer()
-
-                // Кнопка меню
-                Button {
-                    showingPopover.toggle()
-                } label: {
-                    Image(systemName: "ellipsis.circle.fill")
-                        .symbolRenderingMode(.hierarchical)
-                        .font(.system(size: 18))
+                    
+                    Text("Текущий выбор")
+                        .font(.system(size: 10))
                         .foregroundStyle(.secondary)
-                        .padding(6)
-                        .background(
-                            Circle()
-                                .fill(.ultraThinMaterial)
-                                .shadow(radius: 2)
-                        )
-                }
-                .buttonStyle(.plain)
-                .popover(isPresented: $showingPopover) {
-                    VStack(spacing: 12) {
-                        Text("Выбор расписания")
-                            .font(.headline)
-                            .padding(.top, 8)
-
-                        TextField("Введите название группы", text: $scheduleName)
-                            .textFieldStyle(.roundedBorder)
-                            .padding(.horizontal)
-                            .onSubmit {
-                                Task {
-                                    do {
-                                        let grabber = HTMLGrabber()
-                                        results = try await grabber.searchGroup(scheduleName)
-                                    } catch {
-                                        print("Ошибка при поиске группы: \(error)")
-                                    }
-                                }
-                            }
-
-                        Divider().padding(.horizontal)
-
-                        if results.isEmpty {
-                            Text("Нет результатов")
-                                .foregroundColor(.secondary)
-                                .padding()
-                        } else {
-                            ScrollView {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    ForEach(results) { item in
-                                        Button {
-                                            showingPopover = false
-                                            store.url = "https://ruz.fa.ru/api/schedule/group/\(item.id)"
-                                            groupName = item.label
-                                            Task {
-                                                store.refresh(force: true)
-                                            }
-                                        } label: {
-                                            HStack {
-                                                Text(item.label)
-                                                    .foregroundColor(.primary)
-                                                Spacer()
-                                                Image(systemName: "chevron.right")
-                                                    .font(.caption)
-                                                    .foregroundColor(.secondary)
-                                            }
-                                            .padding(8)
-                                            .background(
-                                                RoundedRectangle(cornerRadius: 8)
-                                                    .fill(.thinMaterial)
-                                                    .opacity(0.6)
-                                            )
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
-                                }
-                                .padding(.horizontal)
-                                .padding(.bottom, 8)
-                            }
-                            .frame(height: 220)
-                        }
-
-                        Button("Закрыть") {
-                            showingPopover = false
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .padding(.bottom, 8)
-                    }
-                    .frame(width: 320)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(.ultraThinMaterial)
-                            .shadow(radius: 20)
-                    )
-                    .padding()
                 }
             }
+
+            Spacer()
+
+            // Правая часть: Кнопка вызова меню
+            Button {
+                showingPopover.toggle()
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(.primary.opacity(0.8))
+                    .frame(width: 32, height: 32)
+                    .background {
+                        Circle()
+                            .fill(.white.opacity(0.06))
+                            .overlay(
+                                Circle()
+                                    .stroke(.white.opacity(0.1), lineWidth: 0.5)
+                            )
+                    }
+            }
+            .buttonStyle(.plain)
+            .popover(isPresented: $showingPopover, arrowEdge: .top) {
+                popoverContent
+            }
         }
-        .padding(.top, 8)
+        .padding(.leading, 10)
+        .padding(.trailing, 8)
+        .padding(.vertical, 8)
+        .background {
+            // Эффект "вложенной" панели в стиле Tahoe
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(.black.opacity(0.25)) // Темная подложка
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(
+                            LinearGradient(
+                                colors: [.white.opacity(0.08), .clear],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            ),
+                            lineWidth: 1
+                        )
+                )
+        }
+        .padding(.top, 4)
     }
 
 
+    private var popoverContent: some View {
+        VStack(spacing: 12) {
+            Text("Выбор расписания")
+                .font(.system(size: 14, weight: .bold))
+                .padding(.top, 12)
+
+            TextField("Введите название группы", text: $scheduleName)
+                .textFieldStyle(.plain)
+                .padding(8)
+                .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
+                .cornerRadius(8)
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(.white.opacity(0.1), lineWidth: 0.5))
+                .padding(.horizontal)
+                .onSubmit {
+                    Task {
+                        do {
+                            let grabber = HTMLGrabber()
+                            results = try await grabber.searchGroup(scheduleName)
+                        } catch {
+                            print("Ошибка: \(error)")
+                        }
+                    }
+                }
+
+            if results.isEmpty {
+                Text("Нет результатов")
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+                    .frame(height: 100)
+            } else {
+                ScrollView {
+                    VStack(spacing: 4) {
+                        ForEach(results) { item in
+                            Button {
+                                showingPopover = false
+                                store.url = "https://ruz.fa.ru/api/schedule/group/\(item.id)"
+                                groupName = item.label
+                                store.refresh(force: true)
+                            } label: {
+                                HStack {
+                                    Text(item.label)
+                                        .font(.system(size: 12))
+                                    Spacer()
+                                    Image(systemName: "chevron.right").font(.system(size: 10))
+                                }
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 8)
+                                .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 8))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+                .frame(height: 200)
+            }
+
+            Button("Закрыть") { showingPopover = false }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .padding(.bottom, 12)
+        }
+        .frame(width: 280)
+    }
+    
     // MARK: - Getters/Setters
     
     private mutating func setGroupInfo(groupName: String) {
@@ -320,22 +345,24 @@ struct BreakRow: View {
     let info: BreakInfo
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 8) {
             Image(systemName: "cup.and.saucer.fill")
-                .frame(width: 18)
-                .opacity(0.8)
+                .font(.system(size: 10))
+                .foregroundStyle(.orange)
 
             Text("Перемена • \(info.minutes) мин • \(info.timeRangeString)")
-                .font(.caption2)
-                .foregroundColor(.primary)
-
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(.orange.opacity(0.9))
+            
             Spacer()
         }
         .padding(.vertical, 6)
-        .padding(.horizontal, 8)
-        .background(Color.yellow.opacity(0.25))
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .shadow(color: Color.black.opacity(0.1), radius: 3, x: 0, y: 2)
+        .padding(.horizontal, 12)
+        .background {
+            Capsule()
+                .fill(Color.orange.opacity(0.1))
+                .overlay(Capsule().stroke(Color.orange.opacity(0.2), lineWidth: 0.5))
+        }
     }
 }
 
@@ -378,11 +405,11 @@ struct LessonRow: View {
     let isNow: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
-                Image(systemName: lesson.kind.iconName)
+                Image(systemName: lesson.kind.iconName(forTitle: lesson.title))
                     .frame(width: 18)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(isNow ? .cyan : .secondary)
 
                 Text(lesson.title)
                     .font(.subheadline.weight(.semibold))
@@ -392,38 +419,46 @@ struct LessonRow: View {
 
                 if isNow {
                     Text("сейчас")
-                        .font(.caption2)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.cyan.opacity(0.3), in: Capsule())
+                        .font(.caption2.bold())
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Color.cyan.opacity(0.8), in: Capsule())
+                        .foregroundStyle(.white)
                 }
             }
 
             Text("\(lesson.timeRangeString) • \(lesson.kind.rawValue)")
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
                 .padding(.leading, 24)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
                 ForEach(lesson.locations, id: \.room) { loc in
                     HStack(spacing: 4) {
                         Image(systemName: "mappin.and.ellipse")
-                            .foregroundColor(.secondary)
                             .font(.caption2)
                         Text(loc.room)
-                            .font(.caption2)
                         if let teacher = loc.teacher {
-                            Text("•").font(.caption2)
-                            Text(teacher).font(.caption2)
+                            Text("•")
+                            Text(teacher)
                         }
                     }
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
                 }
             }
             .padding(.leading, 24)
         }
-        .padding(10)
-        .background(isNow ? Color.cyan.opacity(0.25) : Color.gray.opacity(0.15))
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+        .padding(12)
+        // Использование тонкого материала для внутренних карточек
+        .background {
+            ZStack {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(isNow ? Color.cyan.opacity(0.15) : Color.white.opacity(0.05))
+                
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(isNow ? .cyan.opacity(0.3) : .white.opacity(0.1), lineWidth: 0.5)
+            }
+        }
     }
 }
