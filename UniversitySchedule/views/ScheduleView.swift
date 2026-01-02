@@ -12,13 +12,19 @@ struct ScheduleView: View {
     @Environment(\.colorScheme) private var scheme
     @Environment(\.scenePhase) private var scenePhase
     
+    @AppStorage("selectedGroupName") var groupName: String = ""
+    @AppStorage("selectedGroupURL") var savedURL: String = ""
+    
     @State private var scheduleId: String = ""
     @State private var scheduleName: String = ""
     @State private var showingScheduleEditor = false
     
-    @State public var groupName: String = ""
     @State private var showingPopover = false
     @State private var results: [HTMLGrabber.ScheduleItemInfo] = []
+    
+    private var currentDate: Date {
+        store.today.date
+    }
 
     // MARK: BODY
     
@@ -45,8 +51,13 @@ struct ScheduleView: View {
                 footer
                     .padding([.horizontal, .bottom], 12)
             }
+        }.onAppear {
+            if !savedURL.isEmpty {
+                store.url = savedURL
+                store.refresh()
+            }
         }
-        .ignoresSafeArea() // Игнорируем безопасные зоны окна
+        .ignoresSafeArea()
     }
 
     
@@ -61,21 +72,51 @@ struct ScheduleView: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            Button {
-                store.refresh(force: true) // ручной форс, кулдаун обходится
-            } label: {
-                Group {
-                    if store.isLoading {
-                        ProgressView().controlSize(.small)
-                    } else {
-                        Image(systemName: "arrow.triangle.2.circlepath")
-                            .imageScale(.medium)
+            HStack {
+                Image(systemName: "chevron.left")
+                    .imageScale(.medium)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        scrollLeft()
+                    }
+                Button {
+                    store.refresh(force: true)
+                } label: {
+                    Group {
+                        if store.isLoading {
+                            ProgressView().controlSize(.small)
+                        } else {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                                .imageScale(.medium)
+                        }
                     }
                 }
+                .padding(.horizontal, 6)
+                .buttonStyle(.borderless)
+                .disabled(store.isLoading)
+                Image(systemName: "chevron.right")
+                    .imageScale(.medium)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        scrollRight()
+                    }
             }
-            .buttonStyle(.borderless)
-            .padding(.trailing, 9)
-            .disabled(store.isLoading)
+        }
+    }
+    
+    private func scrollRight() -> Void {
+        if let nextDate = Calendar.current.date(byAdding: .day, value: 1, to: store.today.date) {
+            store.today.date = nextDate
+            store.today.lessons = []
+            store.refresh(force: true)
+        }
+    }
+    
+    private func scrollLeft() -> Void {
+        if let nextDate = Calendar.current.date(byAdding: .day, value: -1, to: store.today.date) {
+            store.today.date = nextDate
+            store.today.lessons = []
+            store.refresh(force: true)
         }
     }
 
@@ -93,10 +134,9 @@ struct ScheduleView: View {
         }
     }
 
-
     private var emptyState: some View {
         HStack(spacing: 8) {
-            Image(systemName: "sun.max")
+            Image(systemName: "info.circle")
             Text("Сегодня занятий нет")
         }
         .font(.subheadline)
@@ -215,8 +255,12 @@ struct ScheduleView: View {
                         ForEach(results) { item in
                             Button {
                                 showingPopover = false
-                                store.url = "https://ruz.fa.ru/api/schedule/group/\(item.id)"
-                                groupName = item.label
+                                let finalURL = "https://ruz.fa.ru/api/schedule/group/\(item.id)"
+                                
+                                self.groupName = item.label
+                                self.savedURL = finalURL
+                                
+                                store.url = finalURL
                                 store.refresh(force: true)
                             } label: {
                                 HStack {
@@ -246,9 +290,9 @@ struct ScheduleView: View {
                 exit(0)
             } label: {
                 Text("Закрыть приложение")
-                    .foregroundStyle(.red)
             }
-            .buttonStyle(.bordered) 
+            .background(Color.red)
+            .buttonStyle(.bordered)
             .controlSize(.small)
             .padding(.bottom, 12)
         }

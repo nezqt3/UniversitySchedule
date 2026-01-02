@@ -28,56 +28,56 @@ final class HTMLGrabber {
         let guid: String
     }
     
-    func fetchText(from urlString: String, select css: String? = nil) async throws -> Int {
-        let data = try await fetchData(urlString: urlString, retries: 3)
-        if isJSON(data: data) {
-            return try await extractString(from: data, key: "discipline") as! Int? ?? 1
-//            return jsonToPrettyString(data) ?? String(data: data, encoding: .utf8) ?? ""
-        }
-        return 1
-    }
-    
-    func extractString(from data: Data, key: String) async throws -> Any? {
+    func extractString(from data: Data, targetDate: Date) async throws -> [Lesson] {
         guard let array = try JSONSerialization.jsonObject(with: data) as? [Any] else {
-            return ""
+            return []
         }
-        
-        var dict = [Lesson]()
-        let now = Date()
-
+            
+        var lessons = [Lesson]()
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
-        let dateString = dateFormatter.string(from: now)
+        let dateString = dateFormatter.string(from: targetDate)
 
         for element in array {
             guard let item = element as? [String: Any] else { continue }
             guard let date = item["date"] as? String, date == dateString else { continue }
+            
             guard let kindStr = item["kindOfWork"] as? String else { continue }
-            let lessonKind: LessonKind = (kindStr == "Лекции") ? .lecture : .seminar
+            
+            let lessonKind: LessonKind
+            let lowerKind = kindStr.lowercased()
+            
+            if lowerKind.contains("лекци") {
+                lessonKind = .lecture
+            } else if lowerKind.contains("семинар") || lowerKind.contains("практич") {
+                lessonKind = .seminar
+            } else if lowerKind.contains("лаб") {
+                lessonKind = .lab
+            } else {
+                lessonKind = .custom(kindStr)
+            }
 
             guard
-                let startTimeString = timeStringToDateComponents(item["beginLesson"] as! String),
-                let endTimeString   = timeStringToDateComponents(item["endLesson"]   as! String),
+                let startStr = item["beginLesson"] as? String,
+                let endStr = item["endLesson"] as? String,
+                let startTimeComponents = timeStringToDateComponents(startStr),
+                let endTimeComponents   = timeStringToDateComponents(endStr),
                 let title           = item["discipline"]  as? String,
                 let location        = item["auditorium"]  as? String,
                 let teacher         = item["lecturer"]    as? String
             else { continue }
+            
             let lesson = Lesson(
-                start: startTimeString,
-                end: endTimeString,
+                start: startTimeComponents,
+                end: endTimeComponents,
                 title: title,
                 kind: lessonKind,
                 locations: [LessonLocation(room: location, teacher: teacher)]
             )
-            
-            dict.append(lesson)
+            lessons.append(lesson)
         }
         
-        let groupedEvents = Dictionary(grouping: dict, by: { $0.start })
-        SampleData.updateSchedule(with: dict)
-        print(dict)
-        
-        return array.count
+        return lessons
     }
     
     func timeStringToDateComponents(_ timeString: String) -> DateComponents? {

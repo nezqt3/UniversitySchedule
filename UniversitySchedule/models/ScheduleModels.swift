@@ -23,38 +23,37 @@ struct Lesson: Identifiable, Hashable {
     }
 }
 
-enum LessonKind: String, CaseIterable, Codable {
-    case lecture = "Лекция"
-    case seminar = "Семинар"
-    case lab = "Лабораторная"
-    case other = "Другое"
+enum LessonKind: Hashable, Codable {
+    case lecture
+    case seminar
+    case lab
+    case custom(String)
+
+    var rawValue: String {
+        switch self {
+        case .lecture: return "Лекция"
+        case .seminar: return "Семинар"
+        case .lab: return "Лабораторная"
+        case .custom(let name): return name
+        }
+    }
 
     func iconName(forTitle title: String) -> String {
         let lowercasedTitle = title.lowercased()
-        
         switch self {
         case .lecture:
-            if lowercasedTitle.contains("матем") {
-                return "function"
-            } else if lowercasedTitle.contains("физика") {
-                return "atom"
-            } else if lowercasedTitle.contains("литература") {
-                return "text.book.closed"
-            } else {
-                return "book"
-            }
-        case .seminar:
-            return "person.2.circle"
-        case .lab:
-            return "testtube.2.circle"
-        case .other:
-            return "square.grid.2x2"
+            if lowercasedTitle.contains("матем") { return "function" }
+            if lowercasedTitle.contains("физика") { return "atom" }
+            return "book"
+        case .seminar: return "person.2.circle"
+        case .lab: return "testtube.2.circle"
+        case .custom: return "square.grid.2x2"
         }
     }
 }
 
 struct DaySchedule {
-    let date: Date
+    var date: Date
     var lessons: [Lesson]
 }
 
@@ -133,26 +132,43 @@ final class ScheduleStore: ObservableObject {
     }
 
     func refresh(force: Bool = false) {
-        let now = Date()
-        let isNewDay = lastRefresh.map { !Calendar.current.isDate($0, inSameDayAs: now) } ?? true
-        if !force && !isNewDay, let last = lastRefresh, now.timeIntervalSince(last) < cooldown { return }
-        guard !isLoading else { return }
+        guard !url.isEmpty else { return }
+        if isLoading { return }
 
         isLoading = true
+        
+        let df = DateFormatter()
+        df.dateFormat = "yyyy.MM.dd"
+        let dateStr = df.string(from: today.date)
+        
+        // API RUZ требует параметры start и finish
+        let fullURL = "\(url)?start=\(dateStr)&finish=\(dateStr)"
+        print(fullURL)
+        
         Task {
-            defer {
-                lastRefresh = Date()
-                isLoading = false
-                scheduleMidnightRefresh()
-            }
+            defer { isLoading = false }
             do {
-                _ = try await grabber.fetchText(from: url)
-                today = SampleData.currentSchedule
+                // 1. Загружаем данные
+                let data = try await fetchData(urlString: fullURL)
+                
+                // 2. Парсим и получаем массив [Lesson]
+                let fetchedLessons = try await grabber.extractString(from: data, targetDate: today.date)
+                
+                // 3. ПРЯМОЕ ОБНОВЛЕНИЕ (SwiftUI это увидит)
+                self.today.lessons = fetchedLessons
+                
+                print("Успешно загружено уроков: \(fetchedLessons.count)")
             } catch {
-                print("refresh error:", error)
+                print("Ошибка обновления: \(error.localizedDescription)")
             }
         }
-    }
+        }
+    
+    private func fetchData(urlString: String) async throws -> Data {
+            guard let url = URL(string: urlString) else { throw GrabErr.badURL }
+            let (data, _) = try await URLSession.shared.data(from: url)
+            return data
+        }
 
     private func scheduleMidnightRefresh() {
         midnightTimer?.cancel()
