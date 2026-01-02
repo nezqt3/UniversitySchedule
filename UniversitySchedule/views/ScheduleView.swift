@@ -23,22 +23,30 @@ struct ScheduleView: View {
     // MARK: BODY
     
     var body: some View {
-        TahoeGlassCard(cornerRadius: 24, padding: 12) {
-            VStack(alignment: .leading, spacing: 12) {
+        // Убираем внешний ZStack или Padding здесь
+        TahoeGlassCard(cornerRadius: 16, padding: 0) { // padding внутри карты
+            VStack(alignment: .leading, spacing: 0) {
                 header
-                    .padding(.horizontal, 4)
+                    .padding([.horizontal, .top], 16)
                 
+                Divider()
+                    .opacity(0.1)
+                    .padding(.vertical, 8)
+
                 if store.today.lessons.isEmpty {
                     emptyState
                 } else {
                     lessonsList
+                        .padding(.horizontal, 16)
                 }
                 
+                Spacer(minLength: 16)
+                
                 footer
+                    .padding([.horizontal, .bottom], 12)
             }
         }
-        .padding(10)
-        .frame(width: 320) // Примерная ширина виджета
+        .ignoresSafeArea() // Игнорируем безопасные зоны окна
     }
 
     
@@ -233,6 +241,16 @@ struct ScheduleView: View {
                 .buttonStyle(.bordered)
                 .controlSize(.small)
                 .padding(.bottom, 12)
+            
+            Button(role: .destructive) {
+                exit(0)
+            } label: {
+                Text("Закрыть приложение")
+                    .foregroundStyle(.red)
+            }
+            .buttonStyle(.bordered) 
+            .controlSize(.small)
+            .padding(.bottom, 12)
         }
         .frame(width: 280)
     }
@@ -253,7 +271,6 @@ struct ScheduleView: View {
         df.setLocalizedDateFormatFromTemplate("EEEE, d MMM")
         return df.string(from: date).capitalized
     }
-
 
     private func isNow(_ lesson: Lesson) -> Bool {
         let cal = Calendar.current
