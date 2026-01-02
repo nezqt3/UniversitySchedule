@@ -30,7 +30,6 @@ struct ScheduleView: View {
     
     var body: some View {
         // Убираем внешний ZStack или Padding здесь
-        TahoeGlassCard(cornerRadius: 16, padding: 0) { // padding внутри карты
             VStack(alignment: .leading, spacing: 0) {
                 header
                     .padding([.horizontal, .top], 16)
@@ -51,13 +50,19 @@ struct ScheduleView: View {
                 footer
                     .padding([.horizontal, .bottom], 12)
             }
-        }.onAppear {
+            .onAppear {
             if !savedURL.isEmpty {
                 store.url = savedURL
                 store.refresh()
             }
         }
-        .ignoresSafeArea()
+        .background {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(.ultraThinMaterial)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: .black.opacity(0.25), radius: 20, y: 10)
+        .padding(10)
     }
 
     
@@ -221,82 +226,144 @@ struct ScheduleView: View {
 
 
     private var popoverContent: some View {
-        VStack(spacing: 12) {
-            Text("Выбор расписания")
-                .font(.system(size: 14, weight: .bold))
-                .padding(.top, 12)
+        VStack(spacing: 0) {
+            HStack {
+                // Логотип ВУЗа 1
+                Image("logoFin") // Замени на свое название
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 24, height: 24)
+                
+                Spacer()
+                
+                Text("Выбор расписания")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(.primary)
+                
+                Spacer()
+                
+                // Логотип ВУЗа 2 (или факультета)
+                Image("itclogo") // Замени на свое название
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 24, height: 24)
+                    .opacity(0.8)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 12)
 
+            // MARK: - Search Field
             TextField("Введите название группы", text: $scheduleName)
                 .textFieldStyle(.plain)
-                .padding(8)
-                .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
-                .cornerRadius(8)
-                .overlay(RoundedRectangle(cornerRadius: 8).stroke(.white.opacity(0.1), lineWidth: 0.5))
-                .padding(.horizontal)
+                .padding(10)
+                .background {
+                    // Tahoe-эффект для поля ввода
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(.white.opacity(0.05))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .stroke(.white.opacity(0.1), lineWidth: 0.5)
+                        )
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 12)
                 .onSubmit {
-                    Task {
-                        do {
-                            let grabber = HTMLGrabber()
-                            results = try await grabber.searchGroup(scheduleName)
-                        } catch {
-                            print("Ошибка: \(error)")
-                        }
-                    }
+                    searchForGroup()
                 }
 
+            // MARK: - Results
             if results.isEmpty {
-                Text("Нет результатов")
-                    .font(.system(size: 12))
-                    .foregroundColor(.secondary)
-                    .frame(height: 100)
+                VStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 24))
+                        .foregroundStyle(.secondary.opacity(0.5))
+                    Text("Начните поиск")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 180)
             } else {
                 ScrollView {
-                    VStack(spacing: 4) {
+                    VStack(spacing: 6) {
                         ForEach(results) { item in
                             Button {
-                                showingPopover = false
-                                let finalURL = "https://ruz.fa.ru/api/schedule/group/\(item.id)"
-                                
-                                self.groupName = item.label
-                                self.savedURL = finalURL
-                                
-                                store.url = finalURL
-                                store.refresh(force: true)
+                                selectGroup(item)
                             } label: {
                                 HStack {
-                                    Text(item.label)
-                                        .font(.system(size: 12))
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(item.label)
+                                            .font(.system(size: 13, weight: .medium))
+                                        Text("Группа студента")
+                                            .font(.system(size: 10))
+                                            .foregroundStyle(.secondary)
+                                    }
                                     Spacer()
-                                    Image(systemName: "chevron.right").font(.system(size: 10))
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.system(size: 14))
+                                        .foregroundStyle(.cyan)
                                 }
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 8)
-                                .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 8))
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 10)
+                                .background {
+                                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                        .fill(.white.opacity(showingPopover ? 0.05 : 0))
+                                }
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(PlainButtonStyle())
                         }
                     }
-                    .padding(.horizontal)
+                    .padding(.horizontal, 12)
                 }
                 .frame(height: 200)
+                .padding(.vertical, 4)
             }
 
-            Button("Закрыть") { showingPopover = false }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .padding(.bottom, 12)
+            // MARK: - Footer Actions
+            Divider().opacity(0.1)
             
-            Button(role: .destructive) {
-                exit(0)
-            } label: {
-                Text("Закрыть приложение")
+            HStack(spacing: 12) {
+                Button("Закрыть") { showingPopover = false }
+                    .buttonStyle(.plain)
+                    .font(.system(size: 12, weight: .medium))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 32)
+                    .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 8))
+                
+                Button(role: .destructive) { exit(0) } label: {
+                    Image(systemName: "power")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(.red.opacity(0.8))
+                }
+                .buttonStyle(.plain)
+                .frame(width: 32, height: 32)
+                .background(.red.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
             }
-            .background(Color.red)
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-            .padding(.bottom, 12)
+            .padding(16)
         }
-        .frame(width: 280)
+        .frame(width: 300)
+        .background(.ultraThinMaterial) // Эффект стекла для самого попвера
+    }
+    
+    private func searchForGroup() {
+        Task {
+            do {
+                let grabber = HTMLGrabber()
+                results = try await grabber.searchGroup(scheduleName)
+            } catch {
+                print("Ошибка: \(error)")
+            }
+        }
+    }
+    
+    private func selectGroup(_ item: HTMLGrabber.ScheduleItemInfo) {
+        showingPopover = false
+        let finalURL = "https://ruz.fa.ru/api/schedule/group/\(item.id)"
+        self.groupName = item.label
+        self.savedURL = finalURL
+        store.url = finalURL
+        store.refresh(force: true)
     }
     
     // MARK: - Getters/Setters
@@ -409,11 +476,11 @@ struct BreakRow: View {
         HStack(spacing: 8) {
             Image(systemName: "cup.and.saucer.fill")
                 .font(.system(size: 10))
-                .foregroundStyle(.orange)
+                .foregroundStyle(.cyan.opacity(0.5))
 
             Text("Перемена • \(info.minutes) мин • \(info.timeRangeString)")
                 .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(.orange.opacity(0.9))
+                .foregroundStyle(.cyan.opacity(0.5))
             
             Spacer()
         }
@@ -421,8 +488,8 @@ struct BreakRow: View {
         .padding(.horizontal, 12)
         .background {
             Capsule()
-                .fill(Color.orange.opacity(0.1))
-                .overlay(Capsule().stroke(Color.orange.opacity(0.2), lineWidth: 0.5))
+                .fill(Color.cyan.opacity(0.1))
+                .overlay(Capsule().stroke(Color.cyan.opacity(0.2), lineWidth: 0.5))
         }
     }
 }
