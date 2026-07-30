@@ -84,21 +84,19 @@ struct ScheduleView: View {
                     .onTapGesture {
                         scrollLeft()
                     }
-                Button {
-                    store.refresh(force: true)
-                } label: {
-                    Group {
-                        if store.isLoading {
-                            ProgressView().controlSize(.small)
-                        } else {
-                            Image(systemName: "arrow.triangle.2.circlepath")
-                                .imageScale(.medium)
-                        }
+                Group {
+                    if store.isLoading {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Text("↻")
+                            .font(.system(size: 19, weight: .medium))
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                store.refresh(force: true)
+                            }
                     }
                 }
                 .padding(.horizontal, 6)
-                .buttonStyle(.borderless)
-                .disabled(store.isLoading)
                 Image(systemName: "chevron.right")
                     .imageScale(.medium)
                     .contentShape(Rectangle())

@@ -1,6 +1,6 @@
 <div align="center">
 
-# University Schedule for macOS
+# macOS Menu Bar Schedule
 
 ### Нативное menu-bar приложение для быстрого просмотра университетского расписания
 
@@ -88,8 +88,8 @@ UniversitySchedule/
 Требования: macOS 15.5+ и Xcode с поддержкой Swift Package Manager.
 
 ```bash
-git clone https://github.com/nezqt3/UniversitySchedule.git
-cd UniversitySchedule
+git clone https://github.com/nezqt3/macOS-MenuBar-Schedule.git
+cd macOS-MenuBar-Schedule
 open UniversitySchedule.xcodeproj
 ```
 
